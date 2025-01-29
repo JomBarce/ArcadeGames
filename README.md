@@ -11,3 +11,4 @@ A 3D aim training firing range built using Three.js
 - **TypeScript** for type-safe development and structure.
 - **HTML** for basic structure and integration with Three.js canvas.
 - **CSS** for styling and UI components, such as the crosshair.
+- **Vite.js** for fast development and bundling.
