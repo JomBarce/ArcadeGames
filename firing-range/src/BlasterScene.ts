@@ -31,19 +31,17 @@ export default class BlasterScene extends THREE.Scene {
         // Load target material
         const targetMtl = await this.mtLoader.loadAsync('assets/targetA.mtl');
         targetMtl.preload();
-        // Target positions
-        const targetPositions = [
-            { x:-2, y:0, z:-2 }, { x:-2, y:2, z:-3 },
-            { x:-1, y:0, z:-3 }, { x:-1, y:1, z:-2 },
-            { x:0, y:0, z:-2 }, { x:0, y:2, z:-3 },
-            { x:1, y:0, z:-3 }, { x:1, y:1, z:-2 },
-            { x:2, y:0, z:-2 }, { x:2, y:2, z:-3 },
-            { x:-1, y:-1, z:-2 }, { x:1, y:-1, z:-2 }
-        ];
-        // Load and position targets
-        const targets = await Promise.all(targetPositions.map(async (position) => {
+
+        // Load and position targets with random positions
+        const targets = await Promise.all(Array.from({ length: 10 }).map(async () => {
             const target = await this.createTarget(targetMtl);
-            target.position.set(position.x, position.y, position.z);
+
+            // Randomize target position
+            const randomX = Math.random() * 4 - 2;  // -2 to 2
+            const randomY = Math.random() * 4 - 2;  // -2 to 2
+            const randomZ = Math.random() * 7 - 11;  // -2 to -10
+
+            target.position.set(randomX, randomY, randomZ);
 
             this.targets.push(target);
             this.targetPositionsMap.set(target, target.position.clone());
@@ -62,7 +60,7 @@ export default class BlasterScene extends THREE.Scene {
             this.blaster.add(this.camera);
             this.camera.position.set(0, 0.4, 1); // Camera Position
         }
-
+        
         // Load bullet material
         this.bulletMtl = await this.mtLoader.loadAsync('assets/foamBulletB.mtl');
         this.bulletMtl.preload();
@@ -122,14 +120,11 @@ export default class BlasterScene extends THREE.Scene {
         // Bullet spawn position
         const aabb = new THREE.Box3().setFromObject(this.blaster);
         const size = aabb.getSize(new THREE.Vector3());
-        const vec = this.blaster.position.clone();
-        vec.y += 0.1;
+        const spawnPosition = this.blaster.position.clone();
+        spawnPosition.add(this.directionVector.clone().multiplyScalar(size.z * 0.1));
+        spawnPosition.y += 0.08;
 
-        bulletModel.position.add(
-            vec.add(
-                this.directionVector.clone().multiplyScalar(size.z * 0.5)
-            )
-        );
+        bulletModel.position.copy(spawnPosition);
 
         // Rotate and align the bullet to face the firing direction
         bulletModel.children.forEach(child => child.rotateX(Math.PI * -0.5));
@@ -144,6 +139,10 @@ export default class BlasterScene extends THREE.Scene {
         const velocity = this.directionVector.clone().multiplyScalar(0.1);
         // Bullet movement
         const moveBullet = () => {
+            // Stop the movement if the bullet has been removed
+            if (!this.bullets.includes(bulletModel)) {
+                return; 
+            }
             // Move the bullet
             bulletModel.position.add(velocity);
             // Check for collisions with targets
@@ -179,13 +178,27 @@ export default class BlasterScene extends THREE.Scene {
     private handleTargetHit(target: THREE.Group, bullet: THREE.Object3D) {
         // Remove the target
         this.remove(target);
+        this.targets = this.targets.filter(t => t !== target);
         // Remove the bullet
         this.remove(bullet);
         this.bullets = this.bullets.filter(b => b !== bullet);
         // Respawn the target 
         setTimeout(() => {
-            target.position.copy(this.targetPositionsMap.get(target) || new THREE.Vector3());
-            this.add(target);
+            const randomX = Math.random() * 4 - 2;
+            const randomY = Math.random() * 4 - 2;
+            const randomZ = Math.random() * 8 - 8;
+
+            target.position.set(randomX, randomY, randomZ);
+
+            target.visible = false;
+            target.visible = true;
+            // Reset target before adding
+            target.visible = false;
+            setTimeout(() => {
+                target.visible = true;
+                this.add(target);
+                this.targets.push(target);
+            }, 10);
         }, 2000); // Respawn after 2 seconds
     }
 
