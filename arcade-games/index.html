@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Arcade Games</title>
+		<link rel="icon" type="image/svg+xml" href="/icons/joystick.svg" />
+		<link rel="stylesheet" href="/src/style.css">
+	</head>
+	<body>
+		<!-- Main Menu -->
+		<div id="mainMenu" class="overlay">
+			<h1>Arcade Games</h1>
+			<div class="carousel-container">
+				<!-- Carousel Card for Shooting Game -->
+				<div class="card">
+					<img src="/images/shooting-game.png" alt="Shooting Game" />
+					<h3>Shooting Game</h3>
+					<p>Test your skills in a shooting range!</p>
+					<button id="startShootingGame" class="play-button">Play</button>
+				</div>
+				<!-- Carousel Card for Coming Soon -->
+				<div class="card">
+					<img src="/icons/basketball.svg" alt="Coming Soon" />
+					<h3>Coming Soon</h3>
+					<p>Stay tuned for more games!</p>
+				</div>
+				<!-- Carousel Card for Coming Soon -->
+				<div class="card">
+					<img src="/icons/joystick.svg" alt="Coming Soon" />
+					<h3>Coming Soon</h3>
+					<p>Stay tuned for more games!</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- Countdown Timer -->
+		<div id="countdownTimer" class="overlay hidden">
+			<h3>Starting in: 3s</h3> <!-- Countdown text here -->
+		</div>
+
+		<!-- Game HUD -->
+		<div id="hud">
+			<div id="score">Score: 0</div>
+			<div id="timer">Time: 0</div>
+		</div>
+
+		<!-- Game Over Screen -->
+		<div id="gameOverScreen" class="overlay hidden">
+			<h2>Game Over</h2>
+			<p id="finalScore"></p>
+			<button id="restartButton" class="game-button restart-button">Restart</button>
+			<button id="menuButton" class="game-button menu-button">Go to Menu</button>
+		</div>
+
+		<canvas id="app"></canvas>
+		<script type="module" src="/src/main.ts"></script>
+	</body>
+</html>

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { MTLLoader } from 'three/examples/jsm/Addons.js';
 import { OBJLoader } from 'three/examples/jsm/Addons.js';
+import GameState from './GameState';
 
 export default class BlasterScene extends THREE.Scene {
     private readonly mtLoader = new MTLLoader();
@@ -54,7 +55,7 @@ export default class BlasterScene extends THREE.Scene {
         // Load and create the blaster
         this.blaster = await this.createBlaster();
         if (this.blaster) {
-            this.blaster.position.z = 2; // Blaster Position
+            this.blaster.position.set(0, 0, 0); // Blaster Position
             this.add(this.blaster);
             // Attach the camera to the blaster
             this.blaster.add(this.camera);
@@ -140,17 +141,22 @@ export default class BlasterScene extends THREE.Scene {
         // Bullet movement
         const moveBullet = () => {
             // Stop the movement if the bullet has been removed
-            if (!this.bullets.includes(bulletModel)) {
-                return; 
-            }
+            if (!this.bullets.includes(bulletModel) || GameState.isGameOver) return;
+
             // Move the bullet
             bulletModel.position.add(velocity);
             // Check for collisions with targets
-            this.checkCollisions(bulletModel);
+            const hit = this.checkCollisions(bulletModel);
             // Remove bullet if it goes out of bounds
             if (bulletModel.position.length() > 100) {
                 this.remove(bulletModel);
                 this.bullets = this.bullets.filter(b => b !== bulletModel);
+
+                // Deduct points only if no hit occurred
+                if (!hit && !GameState.isGameOver) {
+                    GameState.score = Math.max(0, GameState.score - 10);
+                    if (GameState.onTargetHit) GameState.onTargetHit(); // to update HUD
+                }
             } else {
                 requestAnimationFrame(moveBullet);
             }
@@ -160,7 +166,7 @@ export default class BlasterScene extends THREE.Scene {
     }
 
     // Check if bullet and target collides
-    private checkCollisions(bullet: THREE.Object3D) {
+    private checkCollisions(bullet: THREE.Object3D): boolean {
         // Bullet bounding box
         const bulletBox = new THREE.Box3().setFromObject(bullet);
         // Check each target for collision with the bullet
@@ -169,9 +175,10 @@ export default class BlasterScene extends THREE.Scene {
             // If collision is detected
             if (bulletBox.intersectsBox(targetBox)) {
                 this.handleTargetHit(target, bullet);
-                break;
+                return true;
             }
         }
+        return false;
     }
 
     // Handle a target hit
@@ -182,11 +189,17 @@ export default class BlasterScene extends THREE.Scene {
         // Remove the bullet
         this.remove(bullet);
         this.bullets = this.bullets.filter(b => b !== bullet);
+        
+        // Notify score change
+        if (GameState.onTargetHit) {
+            GameState.onTargetHit();
+        }
+        
         // Respawn the target 
         setTimeout(() => {
             const randomX = Math.random() * 4 - 2;
             const randomY = Math.random() * 4 - 2;
-            const randomZ = Math.random() * 8 - 8;
+            const randomZ = Math.random() * 7 - 11;
 
             target.position.set(randomX, randomY, randomZ);
 
@@ -208,9 +221,11 @@ export default class BlasterScene extends THREE.Scene {
             // Normalize mouse coordinates
             const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
             const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+
             // Max tilt for the blaster
             const maxTilt = Math.PI / 3;
-            // Rotate the blaster
+
+            // Update blaster rotation based on mouse movement
             this.blaster.rotation.y = -mouseX * maxTilt;
             this.blaster.rotation.x = mouseY * maxTilt;
         }
@@ -222,5 +237,30 @@ export default class BlasterScene extends THREE.Scene {
             // Fire Bullet
             this.createBullet();
         }
+    }
+
+    // Reset
+    public reset(): void {
+        // Remove all targets
+        this.targets.forEach(target => this.remove(target));
+        this.targets = [];
+        this.targetPositionsMap.clear();
+
+        // Remove all bullets
+        this.bullets.forEach(bullet => this.remove(bullet));
+        this.bullets = [];
+
+        // Remove blaster and detach camera
+        if (this.blaster) {
+            if (this.camera.parent === this.blaster) {
+                this.blaster.remove(this.camera);
+            }
+            this.remove(this.blaster);
+            this.blaster = undefined;
+        }
+
+        // Remove event listeners
+        window.removeEventListener('mousemove', this.onMouseMove, false);
+        window.removeEventListener('mousedown', this.onMouseDown, false);
     }
 }
