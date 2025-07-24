@@ -34,7 +34,7 @@ let scene: BlasterScene | null = null;
 let animationId: number | null = null;
 let timerInterval: number | null = null;
 let startTime: number = 0;
-const totalGameTime = 60;
+const totalGameTime = GameState.time;
 
 function updateHUD() {
 	scoreText.textContent = `Score: ${GameState.score}`;
@@ -55,8 +55,8 @@ function startCountDown() {
         if (countdown <= 0) {
             clearInterval(countdownInterval);
             countdownTimer.classList.add('hidden');
-            startTime = performance.now(); // Start the timer when countdown ends
-            animate();  // Start the game loop
+            startTime = performance.now();
+            animate();
         }
     }, 1000);
 }
@@ -68,7 +68,7 @@ async function startGame() {
 
 	// Reset GameState
 	GameState.score = 0;
-	GameState.time = 30;
+	GameState.time = 60;
 	GameState.isGameOver = false;
 
 	updateHUD();
