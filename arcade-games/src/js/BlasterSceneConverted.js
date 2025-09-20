@@ -3,7 +3,7 @@ import { MTLLoader } from 'three/examples/jsm/Addons.js';
 import { OBJLoader } from 'three/examples/jsm/Addons.js';
 import GameState from './GameState';
 
-export default class BlasterScene extends THREE.Scene {
+export default class BlasterSceneConverted extends THREE.Scene {
     constructor(camera) {
         super();
         this.mtLoader = new MTLLoader();

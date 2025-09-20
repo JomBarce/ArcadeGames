@@ -30,7 +30,7 @@ export default class BlasterScene extends THREE.Scene {
     // Initialize the scene
     async initialize() {
         // Load target material
-        const targetMtl = await this.mtLoader.loadAsync('assets/targetA.mtl');
+        const targetMtl = await this.mtLoader.loadAsync('assets/Blaster/targetA.mtl');
         targetMtl.preload();
 
         // Load and position targets with random positions
@@ -63,7 +63,7 @@ export default class BlasterScene extends THREE.Scene {
         }
         
         // Load bullet material
-        this.bulletMtl = await this.mtLoader.loadAsync('assets/foamBulletB.mtl');
+        this.bulletMtl = await this.mtLoader.loadAsync('assets/Blaster/foamBulletB.mtl');
         this.bulletMtl.preload();
 
         // Light
@@ -80,7 +80,7 @@ export default class BlasterScene extends THREE.Scene {
     private async createTarget(mtl: MTLLoader.MaterialCreator) {
         this.objLoader.setMaterials(mtl);
 
-        const targetModel = await this.objLoader.loadAsync('assets/targetA.obj');
+        const targetModel = await this.objLoader.loadAsync('assets/Blaster/targetA.obj');
         // Modify the target model
         targetModel.rotateY(Math.PI * 0.5);
         targetModel.scale.set(2, 2, 2);
@@ -91,11 +91,11 @@ export default class BlasterScene extends THREE.Scene {
     // Create a blaster object
     private async createBlaster() {
         // Load blaster material
-        const blasterMtl = await this.mtLoader.loadAsync('assets/blasterG.mtl');
+        const blasterMtl = await this.mtLoader.loadAsync('assets/Blaster/blasterG.mtl');
         blasterMtl.preload();
         // Set and load the object
         this.objLoader.setMaterials(blasterMtl);
-        const blasterModel = await this.objLoader.loadAsync('assets/blasterG.obj');
+        const blasterModel = await this.objLoader.loadAsync('assets/Blaster/blasterG.obj');
 
         return blasterModel;
     }
@@ -110,7 +110,7 @@ export default class BlasterScene extends THREE.Scene {
             this.objLoader.setMaterials(this.bulletMtl);
         }
         // Load the object
-        const bulletModel = await this.objLoader.loadAsync('assets/foamBulletB.obj');
+        const bulletModel = await this.objLoader.loadAsync('assets/Blaster/foamBulletB.obj');
         // Modify the bullet model
         bulletModel.scale.set(2, 2, 2);
 
