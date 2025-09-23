@@ -1,0 +1,23 @@
+[
+    {
+        "id": 1,
+        "name": "Shooting Game",
+        "description": "An endless platformer mobile game where a frog charges a jump to accurately land on a platform and collect fireflies while its direction is based on the tilt of the mobile device.",
+        "path": "./images/games/",
+        "url": ""
+    },
+    {
+        "id": 2,
+        "name": "Basketball Game",
+        "description": "Coming Soon...",
+        "path": "./images/games/",
+        "url": ""
+    },
+    {
+        "id": 3,
+        "name": "Coming Soon...",
+        "description": "Stay tuned for more games!",
+        "path": "./images/games/",
+        "url": ""
+    }
+]
