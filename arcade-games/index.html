@@ -4,33 +4,16 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Arcade Games</title>
-		<link rel="icon" type="image/svg+xml" href="/icons/joystick.svg" />
-		<link rel="stylesheet" href="/src/style.css">
+		<link rel="icon" type="image/svg+xml" href="./icons/joystick.svg" />
+		<link rel="stylesheet" href="./src/styles/main.css">
+		<link rel="stylesheet" href="./src/styles/rules.css">
 	</head>
 	<body>
 		<!-- Main Menu -->
-		<div id="mainMenu" class="overlay">
+		<div id="mainMenu">
 			<h1>Arcade Games</h1>
-			<div class="carousel-container">
-				<!-- Carousel Card for Shooting Game -->
-				<div class="card">
-					<img src="/images/shooting-game.png" alt="Shooting Game" />
-					<h3>Shooting Game</h3>
-					<p>Test your skills in a shooting range!</p>
-					<button id="startShootingGame" class="play-button">Play</button>
-				</div>
-				<!-- Carousel Card for Coming Soon -->
-				<div class="card">
-					<img src="/icons/basketball.svg" alt="Coming Soon" />
-					<h3>Coming Soon</h3>
-					<p>Stay tuned for more games!</p>
-				</div>
-				<!-- Carousel Card for Coming Soon -->
-				<div class="card">
-					<img src="/icons/joystick.svg" alt="Coming Soon" />
-					<h3>Coming Soon</h3>
-					<p>Stay tuned for more games!</p>
-				</div>
+			<div id="cardContainer" class="card-container">
+				<!-- Dynamic Card Content -->
 			</div>
 		</div>
 
@@ -56,13 +39,12 @@
 		<!-- Pause Screen -->
 		<div id="gamePauseScreen" class="overlay hidden">
 			<h2>Game Paused</h2>
-			<button id="continueButton" class="game-button continue-button">Continue</button>
+			<button id="continueButton" class="game-button play-button">Continue</button>
 			<button id="restartButton2" class="game-button restart-button">Restart</button>
 			<button id="menuButton2" class="game-button menu-button">Go to Menu</button>
 		</div>
 
 		<canvas id="app"></canvas>
-		<!-- <script type="module" src="/src/main.ts"></script> -->
-		<script type="module" src="/src/game.ts"></script>
+		<script type="module" src="./src/main.ts"></script>
 	</body>
 </html>
