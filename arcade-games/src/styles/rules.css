@@ -1,0 +1,41 @@
+/* Screens Below 1100px */
+@media (max-width: 1100px) {
+    .carousel-container {
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+    }
+
+    .carousel-container {
+        justify-content: flex-start;
+    }
+}
+
+@media screen and (max-width: 400px) {
+    .card {
+        width: 250px;
+        height: 350px;
+    }
+
+    .card img {
+        height: 220px;
+    }
+
+    .card h3 {
+        font-size: 1.3rem;
+    }
+
+    .card p {
+        font-size: 0.8rem;
+    }
+
+    #mainMenu h1 {
+        padding: 50px 0 10px 0;
+    }
+}
+
+@media screen and (max-width: 295px), screen and (max-height: 295px) {
+    body,
+    canvas {
+        visibility: hidden;
+    }
+}

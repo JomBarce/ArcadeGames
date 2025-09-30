@@ -5,7 +5,7 @@
 
     color-scheme: light dark;
     color: rgba(255, 255, 255, 0.87);
-    background-color: #242424;
+    background-color: #000000;
 
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -16,10 +16,9 @@
 html, body {
     margin: 0;
     padding: 0;
-    height: 100%;
-    min-width: 320px;
-    min-height: 100vh;
-    cursor: none;
+    width: 100%;
+	height: 100%;
+    overflow-x: hidden;
 }
 
 button:hover {
@@ -28,8 +27,10 @@ button:hover {
 
 .overlay {
     position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: rgba(0, 0, 0, 0.85);
     color: white;
     display: flex;
@@ -44,24 +45,18 @@ button:hover {
     display: none;
 }
 
-/* Carousel Container */
-.carousel-container {
+.card-container {
+    position: relative;
     display: flex;
-    overflow-x: scroll;
-    gap: 20px;
+    flex-wrap: wrap;
+    align-items: center;
     justify-content: center;
-    padding-top: 30px;
-    padding-bottom: 30px;
-    width: 80%;
+    gap: 1.5rem;
+    padding-bottom: 2rem;
 }
 
-.carousel-container {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-/* Card Styles */
 .card {
+    /* flex: 25%; */
     width: 350px;
     height: 450px;
     border-radius: 10px;
@@ -92,14 +87,12 @@ button:hover {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
-/* Play button for Shooting Game */
 .play-button {
     height: 8%;
     width: 50%;
     background-color: #40a337;
     color: white;
     font-size: 1rem;
-    /* border: none; */
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s ease;
@@ -124,20 +117,20 @@ button:hover {
     background-color: #868686;
 }
 
-#app {
+#mainMenu {
     width: 100%;
-    height: 100%;
-    display: block;
-}
-
-#mainMenu,
-#countdownTimer {
+	min-height: 100%;
+    background: rgb(0, 0, 0);
     text-align: center;
+    cursor: default;
+    z-index: 10;
 }
 
 #mainMenu h1 {
-    font-size: 5rem;
     margin: 0;
+    padding: 100px 0 20px 0;
+    font-size: 5rem;
+    font-size: clamp(3rem, 4vw, 4.1vw);
 }
 
 #hud {
@@ -151,6 +144,10 @@ button:hover {
     display: none;
 }
 
+#countdownTimer {
+    text-align: center;
+}
+
 #gameOverScreen h2 {
     font-size: 4rem;
     margin: 20px 0;
@@ -161,14 +158,12 @@ button:hover {
     margin: 20px 0;
 }
 
-/* Screens Below 1100px */
-@media (max-width: 1100px) {
-    .carousel-container {
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-    }
-
-    .carousel-container {
-        justify-content: flex-start;
-    }
+#app {
+    position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: -1;
+    pointer-events: auto;
 }
