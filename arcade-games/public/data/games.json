@@ -2,22 +2,22 @@
     {
         "id": 1,
         "name": "Shooting Game",
-        "description": "An endless platformer mobile game where a frog charges a jump to accurately land on a platform and collect fireflies while its direction is based on the tilt of the mobile device.",
-        "path": "./images/games/",
-        "url": ""
+        "description": "Test your skills in a shooting range!",
+        "imgPath": "./images/shooting-game.png",
+        "buttonPath": "blaster"
     },
     {
         "id": 2,
         "name": "Basketball Game",
-        "description": "Coming Soon...",
-        "path": "./images/games/",
-        "url": ""
+        "description": "Stay tuned for more games!",
+        "imgPath": "./icons/basketball.svg",
+        "buttonPath": "basketball"
     },
     {
         "id": 3,
         "name": "Coming Soon...",
         "description": "Stay tuned for more games!",
-        "path": "./images/games/",
-        "url": ""
+        "imgPath": "./icons/joystick.svg",
+        "buttonPath": ""
     }
 ]
