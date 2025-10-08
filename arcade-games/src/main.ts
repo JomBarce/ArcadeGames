@@ -1,175 +1,146 @@
-import * as THREE from 'three';
-import BlasterScene from './BlasterScene';
-import GameState from './GameState';
+import GameBase from './games/shared/GameBase';
+import BlasterGame from './games/BlasterGame';
 
-const width = window.innerWidth;
-const height = window.innerHeight;
+import { fetchJson } from '../src/utils/fetch';
 
-// Renderer
-const renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    canvas: document.getElementById('app') as HTMLCanvasElement
-});
-// Set the size and color of renderer
-renderer.setSize(width, height);
-renderer.setClearColor( 0xffffff, 0);
-
-// Perspective Camera
-const camera = new THREE.PerspectiveCamera(75, width/height, 0.1, 100);
-
-// UI Elements
+const canvas = document.getElementById('app') as HTMLCanvasElement;
 const mainMenu = document.getElementById('mainMenu') as HTMLDivElement;
-const startButton = document.getElementById('startShootingGame') as HTMLButtonElement;
+const cardContainer = document.getElementById('cardContainer') as HTMLButtonElement;
 const hud = document.getElementById('hud') as HTMLDivElement;
 const scoreText = document.getElementById('score') as HTMLDivElement;
 const timerText = document.getElementById('timer') as HTMLDivElement;
 const gameOverScreen = document.getElementById('gameOverScreen') as HTMLDivElement;
+const gamePauseScreen = document.getElementById('gamePauseScreen') as HTMLDivElement;
 const finalScore = document.getElementById('finalScore') as HTMLParagraphElement;
-const restartButton = document.getElementById('restartButton') as HTMLButtonElement;
-const menuButton = document.getElementById('menuButton') as HTMLButtonElement;
 const countdownTimer = document.getElementById('countdownTimer') as HTMLDivElement;
 
-// Scene
-let scene: BlasterScene | null = null;
-let animationId: number | null = null;
-let timerInterval: number | null = null;
-let startTime: number = 0;
-const totalGameTime = GameState.time;
+const continueButton = document.getElementById('continueButton') as HTMLButtonElement;
+const restartButton1 = document.getElementById('restartButton1') as HTMLButtonElement;
+const restartButton2 = document.getElementById('restartButton2') as HTMLButtonElement;
+const menuButton1 = document.getElementById('menuButton1') as HTMLButtonElement;
+const menuButton2 = document.getElementById('menuButton2') as HTMLButtonElement;
 
-function updateHUD() {
-	scoreText.textContent = `Score: ${GameState.score}`;
-	timerText.textContent = `Time: ${GameState.time.toFixed(2)}s`;
+let currentPage: GameBase | null = null;
+
+interface Games {
+  id: number;
+  name: string;
+  description: string;
+  imgPath: string;
+  buttonPath: string;
 }
 
-// Start Countdown function
-function startCountDown() {
-    let countdown = GameState.countdownTime;
-    
-	countdownTimer.classList.remove('hidden');
-    countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
+const gamesData: Games[] = await fetchJson('./data/games.json');
 
-    const countdownInterval = setInterval(() => {
-        countdown--;
-        countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
+gamesData.forEach((game) => {
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.innerHTML = `
+    <img class="thumbnail" src="${game.imgPath}" alt="Game-${game.id} Thumbnail" draggable="false"/>
+    <h3>${game.name}</h3>
+    <p>${game.description}</p>
+  `;
 
-        if (countdown <= 0) {
-            clearInterval(countdownInterval);
-            countdownTimer.classList.add('hidden');
-            startTime = performance.now();
-            animate();
-        }
-    }, 1000);
-}
+  if (game.buttonPath) {
+    const button = document.createElement("button");
+    button.className = 'play-button';
+    button.innerHTML= 'Play';
 
-async function startGame() {
-	mainMenu.classList.add('hidden');
-	gameOverScreen.classList.add('hidden');
-	hud.style.display = 'block';
+    const clickHandler = () => {
+        switchPage(`${game.buttonPath}`);
+    };
+    button.addEventListener('click', clickHandler);
 
-	// Reset GameState
-	GameState.score = 0;
-	GameState.time = 60;
-	GameState.isGameOver = false;
+    div.appendChild(button);
+  }
 
-	updateHUD();
+  cardContainer.appendChild(div);
+});
 
-    if (scene) {
-        scene.reset(); 
+// Switch games
+async function switchPage(pageName: string) {
+  if (currentPage) await currentPage.cleanup();
+
+  const games: { [key: string]: new (
+    canvas: HTMLCanvasElement,
+    hud: HTMLDivElement,
+    scoreText: HTMLDivElement,
+    timerText: HTMLDivElement,
+    countdownTimer: HTMLDivElement,
+    gameOverScreen: HTMLDivElement,
+    finalScore: HTMLParagraphElement
+  ) => GameBase } = {
+    blaster: BlasterGame
+  };
+
+  const gameClass = games[pageName];
+  if (gameClass) {
+    mainMenu.classList.add('hidden');
+    gamePauseScreen.classList.add('hidden');
+    gameOverScreen.classList.add('hidden');
+    hud.style.display = 'block';
+
+    if (pageName == "basketball"){
+      document.body.style.cursor = 'grab';
+    } else {
+      document.body.style.cursor = 'none';
     }
 
-	scene = new BlasterScene(camera);
-	await scene.initialize();
-
-	// Callback to increase score on target hit
-	GameState.onTargetHit = () => {
-		GameState.score += 100;
-		updateHUD();
-	};
-
-	// show count down screen
-	startCountDown();
-}
-
-function endGame() {
-	if (timerInterval) {
-		clearInterval(timerInterval);
-		timerInterval = null;
-	}
-
-	GameState.isGameOver = true;
-
-	if (scene) {
-		scene.reset();
-		scene = null;
-	}
-
-	hud.style.display = 'none';
-
-    // Update high score
-    if (GameState.score > GameState.highScore) {
-        GameState.highScore = GameState.score;
-        localStorage.setItem('highScore', String(GameState.score));
+    currentPage = new gameClass(canvas, hud, scoreText, timerText, countdownTimer, gameOverScreen, finalScore);
+    if (currentPage) {
+        await currentPage.initialize();
+        currentPage.start();
     }
-
-	finalScore.innerHTML = `
-        Your score: ${GameState.score}<br>
-        High score: ${GameState.highScore}
-    `;
-    gameOverScreen.classList.remove('hidden');
-
-	if (animationId) {
-		cancelAnimationFrame(animationId);
-		animationId = null;
-	}
+  } else {
+    mainMenu.classList.remove('hidden');
+    gamePauseScreen.classList.add('hidden');
+    gameOverScreen.classList.add('hidden');
+    hud.style.display = 'none';
+  }
 }
 
-// Animation Loop
-function animate(timestamp = performance.now()) {
-	if (!scene || GameState.isGameOver) return;
+// Pause button handler
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      if (mainMenu.classList.contains('hidden') && countdownTimer.classList.contains('hidden')) {
+        currentPage?.pause();
+        gamePauseScreen.classList.remove('hidden');
+      }  
+    }
+});
 
-	const elapsed = (timestamp - startTime) / 1000; // in seconds
-	GameState.time = Math.max(0, totalGameTime - elapsed);
-
-	if (GameState.time <= 0) {
-		endGame();
-		return;
-	}
-
-	updateHUD();
-
-	renderer.render(scene, camera);
-	animationId = requestAnimationFrame(animate);
-}
-
-// Start button handler
-startButton.addEventListener('click', () => {
-	startGame();
+// Continue button handler
+continueButton.addEventListener('click', () => {
+	currentPage?.unpause();
+    gamePauseScreen.classList.add('hidden');
 });
 
 // Restart button handler
-restartButton.addEventListener('click', () => {
-	startGame();
+restartButton1.addEventListener('click', () => {
+	currentPage?.reset();
+  currentPage?.start();
+  gameOverScreen.classList.add('hidden');
+});
+
+restartButton2.addEventListener('click', () => {
+	currentPage?.reset();
+  currentPage?.start();
+  gamePauseScreen.classList.add('hidden');
 });
 
 // Menu button handler
-menuButton.addEventListener('click', () => {
-    if (scene) {
-        scene.reset(); 
-    }
+menuButton1.addEventListener('click', () => {
+    currentPage?.pause();
+    currentPage?.cleanup();
     gameOverScreen.classList.add('hidden');
     mainMenu.classList.remove('hidden');
+    hud.style.display = 'none';
 });
 
-// Handle window resize
-window.addEventListener('resize', () => {
-	const width = window.innerWidth;
-	const height = window.innerHeight;
-	renderer.setSize(width, height);
-	camera.aspect = width / height;
-	camera.updateProjectionMatrix();
+menuButton2.addEventListener('click', () => {
+    currentPage?.pause();
+    currentPage?.cleanup();
+    gamePauseScreen.classList.add('hidden');
+    mainMenu.classList.remove('hidden');
+    hud.style.display = 'none';
 });
-
-// Initial state: show main menu, hide others
-hud.style.display = 'none';
-gameOverScreen.classList.add('hidden');
-mainMenu.classList.remove('hidden');
