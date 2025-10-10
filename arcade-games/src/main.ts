@@ -3,9 +3,9 @@ import BlasterGame from './games/BlasterGame';
 
 import { fetchJson } from '../src/utils/fetch';
 
-const canvas = document.getElementById('app') as HTMLCanvasElement;
+const canvas = document.getElementById('app')! as HTMLCanvasElement;
 const mainMenu = document.getElementById('mainMenu') as HTMLDivElement;
-const cardContainer = document.getElementById('cardContainer') as HTMLButtonElement;
+const cardContainer = document.getElementById('cardContainer') as HTMLDivElement;
 const hud = document.getElementById('hud') as HTMLDivElement;
 const scoreText = document.getElementById('score') as HTMLDivElement;
 const timerText = document.getElementById('timer') as HTMLDivElement;
@@ -30,57 +30,66 @@ interface Games {
   buttonPath: string;
 }
 
-const gamesData: Games[] = await fetchJson('./data/games.json');
+async function init() {
+  const gamesData: Games[] = await fetchJson('./data/games.json');
 
-gamesData.forEach((game) => {
-  const div = document.createElement('div');
-  div.className = 'card';
-  div.innerHTML = `
-    <img class="thumbnail" src="${game.imgPath}" alt="Game-${game.id} Thumbnail" draggable="false"/>
-    <h3>${game.name}</h3>
-    <p>${game.description}</p>
-  `;
+  gamesData.forEach((game) => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <img class="thumbnail" src="${game.imgPath}" alt="Game-${game.id} Thumbnail" draggable="false"/>
+      <h3>${game.name}</h3>
+      <p>${game.description}</p>
+    `;
 
-  if (game.buttonPath) {
-    const button = document.createElement("button");
-    button.className = 'play-button';
-    button.innerHTML= 'Play';
+    if (game.buttonPath) {
+      const button = document.createElement("button");
+      button.className = 'play-button';
+      button.innerHTML= 'Play';
 
-    const clickHandler = () => {
+      const clickHandler = () => {
         switchPage(`${game.buttonPath}`);
-    };
-    button.addEventListener('click', clickHandler);
+      };
+      button.addEventListener('click', clickHandler);
 
-    div.appendChild(button);
-  }
+      div.appendChild(button);
+    }
 
-  cardContainer.appendChild(div);
-});
+    cardContainer.appendChild(div);
+  });
+}
+
+init();
+
+type GameKey = 'blaster';
+
+type GameConstructor = new (
+  canvas: HTMLCanvasElement,
+  hud: HTMLDivElement,
+  scoreText: HTMLDivElement,
+  timerText: HTMLDivElement,
+  countdownTimer: HTMLDivElement,
+  gameOverScreen: HTMLDivElement,
+  finalScore: HTMLParagraphElement
+) => GameBase;
+
+const games: Record<GameKey, GameConstructor> = {
+  blaster: BlasterGame,
+};
 
 // Switch games
 async function switchPage(pageName: string) {
   if (currentPage) await currentPage.cleanup();
+  
+  if (Object.keys(games).includes(pageName)) {
+    const gameClass = games[pageName as GameKey];
 
-  const games: { [key: string]: new (
-    canvas: HTMLCanvasElement,
-    hud: HTMLDivElement,
-    scoreText: HTMLDivElement,
-    timerText: HTMLDivElement,
-    countdownTimer: HTMLDivElement,
-    gameOverScreen: HTMLDivElement,
-    finalScore: HTMLParagraphElement
-  ) => GameBase } = {
-    blaster: BlasterGame
-  };
-
-  const gameClass = games[pageName];
-  if (gameClass) {
     mainMenu.classList.add('hidden');
     gamePauseScreen.classList.add('hidden');
     gameOverScreen.classList.add('hidden');
     hud.style.display = 'block';
 
-    if (pageName == "basketball"){
+    if (pageName === "basketball"){
       document.body.style.cursor = 'grab';
     } else {
       document.body.style.cursor = 'none';
