@@ -24,7 +24,7 @@ export default class BlasterGame extends GameBase {
     private lastUpdateTime = 0;
     private timeRemaining = 60;
     private pauseStartTime = 0;
-    private countdownInterval: number | null = null;
+    private countdownInterval: ReturnType<typeof setInterval> | null = null;
     private isUnpausing: boolean = false;
 
     private readonly BULLET_SPEED = 0.1;
