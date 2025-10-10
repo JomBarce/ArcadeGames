@@ -11,7 +11,7 @@
         "name": "Basketball Game",
         "description": "Stay tuned for more games!",
         "imgPath": "./icons/basketball.svg",
-        "buttonPath": "basketball"
+        "buttonPath": ""
     },
     {
         "id": 3,
