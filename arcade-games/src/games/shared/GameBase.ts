@@ -42,7 +42,7 @@ export default class GameBase {
 
     setScene() {
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x333344);       
+        this.scene.background = new THREE.Color(0x242424);       
     }
 
     setLight() {
