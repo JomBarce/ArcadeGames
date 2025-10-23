@@ -1,5 +1,6 @@
 import GameBase from './games/shared/GameBase';
 import BlasterGame from './games/BlasterGame';
+import BasketballGame from './games/BasketballGame';
 
 import { fetchJson } from '../src/utils/fetch';
 
@@ -61,7 +62,7 @@ async function init() {
 
 init();
 
-type GameKey = 'blaster';
+type GameKey = 'blaster' | 'basketball';
 
 type GameConstructor = new (
   canvas: HTMLCanvasElement,
@@ -75,6 +76,7 @@ type GameConstructor = new (
 
 const games: Record<GameKey, GameConstructor> = {
   blaster: BlasterGame,
+  basketball: BasketballGame
 };
 
 // Switch games
