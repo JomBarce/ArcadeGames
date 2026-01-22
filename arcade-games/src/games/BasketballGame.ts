@@ -11,8 +11,8 @@ export default class BasketballGame extends GameBase {
     private ballVelocity: THREE.Vector3 = new THREE.Vector3();
     private hoop: THREE.Object3D | null = null;
     private hoopScoringBox: THREE.Box3 | null = null;
-    private hoopRim: THREE.Mesh | null = null;
 
+    private ballColliderRadius = 0;
     private isDragging: boolean = false;
     private dragStart: { x: number; y: number; time: number } | null = null;
     private dragEnd: { x: number; y: number; time: number } | null = null;
@@ -28,7 +28,7 @@ export default class BasketballGame extends GameBase {
     private finalScore: HTMLParagraphElement;
 
     private lastUpdateTime = 0;
-    private timeRemaining = 600;
+    private timeRemaining = 60;
     private pauseStartTime = 0;
     private countdownInterval: ReturnType<typeof setInterval> | null = null;
     private isUnpausing: boolean = false;
@@ -36,7 +36,13 @@ export default class BasketballGame extends GameBase {
     private readonly BALL_SPEED = 0.0025;
     private readonly BALL_ARC = 1.1;
     private readonly BALL_LIFETIME = -10;
-    private readonly RIM_RADIUS = 0.99;
+    private readonly RIM_RADIUS = 1;
+    private readonly RIM_VERTICAL_THICKNESS = 0.2;
+    private readonly RIM_HEIGHT_OFFSET = -0.1;
+    private readonly RIM_THICKNESS = 0.05;
+    private readonly RIM_RESTITUTION = 1.2;
+    private readonly RIM_FRICTION = 0.1;
+    private readonly BALL_COLLIDER_SCALE = .5;
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -78,6 +84,7 @@ export default class BasketballGame extends GameBase {
             if (ball) {
                 this.currentBall = ball;
                 this.resetBall();
+                this.computeBallColliderRadius();
             }
             
             // Hoop
@@ -88,33 +95,12 @@ export default class BasketballGame extends GameBase {
             }
 
             if (this.hoop) {
-                // Compute a box that tightly encloses the hoop’s “inner” region
                 this.hoop.updateMatrixWorld(true);
                 const box = new THREE.Box3().setFromObject(this.hoop);
-                // You may want to shrink it slightly so the ball must go well inside:
-                const shrink = 0.7;
+                const shrink = 0.4;
                 box.min.add(new THREE.Vector3(shrink, shrink, shrink));
-                box.max.sub(new THREE.Vector3(shrink, 0.3, shrink));
+                box.max.sub(new THREE.Vector3(shrink, 0.5, shrink));
                 this.hoopScoringBox = box;
-
-                const hoopScoringBoxHelper = new THREE.Box3Helper(this.hoopScoringBox, 0x00ff00);
-                this.scene.add(hoopScoringBoxHelper);
-
-                const rimThickness = 0.02;
-
-                // Create a thin torus (ring) mesh as a collider (invisible)
-                const rimCollider = new THREE.Mesh(
-                    new THREE.TorusGeometry(this.RIM_RADIUS, rimThickness, 16, 100),
-                    // new THREE.MeshBasicMaterial({ visible: false })
-                    new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true })
-                );
-
-                // Position and rotation should match the hoop mesh
-                rimCollider.position.copy(this.hoop.position);
-                rimCollider.quaternion.copy(this.hoop.quaternion);
-
-                this.scene.add(rimCollider);
-                this.hoopRim = rimCollider;
             }
         }
 
@@ -123,7 +109,7 @@ export default class BasketballGame extends GameBase {
         GameState.time = 60;
     }
 
-   private resetBall = () => {
+    private resetBall = () => {
         if (!this.currentBall || !this.camera) return;
 
         // Position in front of camera
@@ -136,11 +122,134 @@ export default class BasketballGame extends GameBase {
         this.ballSpinSpeed = 0;
     };
 
-    private onScore() {
-        GameState.score += 100;
-        this.updateHUD();
+    private computeBallColliderRadius() {
+        if (!this.currentBall) return;
 
-        // e.g. play sound, particle effects
+        const box = new THREE.Box3().setFromObject(this.currentBall);
+        const sphere = new THREE.Sphere();
+        box.getBoundingSphere(sphere);
+
+        this.ballColliderRadius = sphere.radius * this.BALL_COLLIDER_SCALE;
+    }
+
+    private handleRimCollision() {
+        if (this.currentBall && this.ballInMotion && this.hoop) {
+            const ballPos = this.currentBall.position;
+            const rimPos = this.hoop.position.clone();
+            rimPos.y += this.RIM_HEIGHT_OFFSET;
+
+            const BALL_R = this.ballColliderRadius;
+
+            // Horizontal distance from rim center
+            const dx = ballPos.x - rimPos.x;
+            const dz = ballPos.z - rimPos.z;
+            const distXZ = Math.sqrt(dx * dx + dz * dz);
+
+            const innerRadius = this.RIM_RADIUS - this.RIM_THICKNESS;
+            const outerRadius = this.RIM_RADIUS + this.RIM_THICKNESS;
+
+            // Vertical distance
+            const verticalDist = Math.abs(ballPos.y - rimPos.y);
+
+            const isAtRimHeight =
+                verticalDist < this.RIM_VERTICAL_THICKNESS * 0.5 + BALL_R * 0.25;
+
+            const isTouchingRim =
+                distXZ > innerRadius - BALL_R &&
+                distXZ < outerRadius + BALL_R;
+
+            // Only collide if ball is falling
+            if (isTouchingRim && isAtRimHeight && this.ballVelocity.y < 0) {
+
+                if (distXZ < innerRadius - BALL_R * 0.8) return;
+
+                // Penetration depths
+                const radialPenetration = outerRadius + BALL_R - distXZ;
+                const verticalPenetration = this.RIM_VERTICAL_THICKNESS * 0.5 + BALL_R - verticalDist;
+                const isTopHit = verticalPenetration < radialPenetration && ballPos.y > rimPos.y;
+
+                if (isTopHit) {
+                    const rimVec = new THREE.Vector3(dx, 0, dz);
+                    const distXZ = rimVec.length();
+
+                    const innerRadius = this.RIM_RADIUS - this.RIM_THICKNESS;
+
+                    if (distXZ < innerRadius) {
+                        // Cone effect
+                        const slopeAngle = 20 * (Math.PI/180);
+                        const coneNormal = new THREE.Vector3(
+                            rimVec.x, Math.tan(slopeAngle) * distXZ, rimVec.z
+                        ).normalize();
+
+                        // Bounce
+                        const v = this.ballVelocity.clone();
+                        const vNormal = coneNormal.clone().multiplyScalar(v.dot(coneNormal));
+                        const vTangent = v.clone().sub(vNormal);
+
+                        const bouncedNormal = vNormal.multiplyScalar(-this.RIM_RESTITUTION);
+                        const bouncedTangent = vTangent.multiplyScalar(1 - this.RIM_FRICTION);
+
+                        this.ballVelocity.copy(bouncedNormal.add(bouncedTangent));
+
+                        // Push ball slightly out of inner rim
+                        this.currentBall.position.x = rimPos.x + coneNormal.x * (BALL_R + 0.001);
+                        this.currentBall.position.z = rimPos.z + coneNormal.z * (BALL_R + 0.001);
+                        this.currentBall.position.y = Math.max(
+                            this.currentBall.position.y,
+                            rimPos.y + BALL_R * 0.5
+                        );
+
+                    } else {
+                        // Ball hits top of rim
+                        if (Math.abs(this.ballVelocity.x) + Math.abs(this.ballVelocity.z) > 0.05) {
+                            this.ballVelocity.y = Math.abs(this.ballVelocity.y) * this.RIM_RESTITUTION * 0.3;
+                        }
+                        this.currentBall.position.y = rimPos.y + this.RIM_VERTICAL_THICKNESS * 0.5 + BALL_R + 0.001;
+                    }
+                } else {
+                    // SIDE OF RIM HIT
+                    const normal = new THREE.Vector3(dx, 0, dz).normalize();
+
+                    const v = this.ballVelocity.clone();
+                    const vNormal = normal.clone().multiplyScalar(v.dot(normal));
+                    const vTangent = v.clone().sub(vNormal);
+
+                    const bouncedNormal = vNormal.multiplyScalar(-this.RIM_RESTITUTION);
+                    const bouncedTangent = vTangent.multiplyScalar(1 - this.RIM_FRICTION);
+
+                    this.ballVelocity.copy(bouncedNormal.add(bouncedTangent));
+
+                    // Push radially outward
+                    const pushOut = normal.multiplyScalar(outerRadius + BALL_R + 0.001);
+                    this.currentBall.position.x = rimPos.x + pushOut.x;
+                    this.currentBall.position.z = rimPos.z + pushOut.z;
+
+                    // Clamp Y
+                    this.currentBall.position.y = Math.max(
+                        this.currentBall.position.y,
+                        rimPos.y - this.RIM_VERTICAL_THICKNESS * 0.25
+                    );
+                }
+            }
+        }
+    }
+
+    private updateBall(delta: number) {
+        if (!this.currentBall || !this.ballInMotion) return;
+
+        this.ballVelocity.y -= GRAVITY * delta;
+        this.currentBall.position.addScaledVector(this.ballVelocity, delta);
+        this.currentBall.rotateX(this.ballSpinSpeed * delta);
+
+        if (this.currentBall.position.y < this.BALL_LIFETIME) {
+            this.resetBall();
+        }
+    }
+
+    private onScore() {
+        GameState.score += 200;
+        this.updateHUD();
+        
         console.log('Scored! New score:', GameState.score);
     }
 
@@ -171,29 +280,19 @@ export default class BasketballGame extends GameBase {
         };
 
         const dx = this.dragEnd.x - this.dragStart.x;
-        const dy = this.dragStart.y - this.dragEnd.y; // Y reversed (screen space)
+        const dy = this.dragStart.y - this.dragEnd.y;
         const dt = (this.dragEnd.time - this.dragStart.time) / 1000;
 
         const speed = Math.sqrt(dx * dx + dy * dy) / dt;
-
-        // 1. Normalize the drag direction (screen space)
         const screenDir = new THREE.Vector2(dx, dy).normalize();
-
-        // 2. Convert to world direction relative to camera
         const flickDirection = new THREE.Vector3(screenDir.x, screenDir.y + this.BALL_ARC, -1).normalize();
 
-        // 3. Rotate direction based on camera orientation
         flickDirection.applyQuaternion(this.camera.quaternion);
 
-        // 4. Apply a scalar multiplier to get actual velocity
         const velocity = flickDirection.multiplyScalar(speed * this.BALL_SPEED);
 
-        // 5. Assign velocity to the ball
         this.ballVelocity.copy(velocity);
-        this.ballInMotion = true;
-
         this.ballSpinSpeed = 1 - Math.min(5, speed * 0.02);
-        this.ballVelocity.copy(velocity);
         this.ballInMotion = true;
 
         this.dragStart = null;
@@ -202,7 +301,7 @@ export default class BasketballGame extends GameBase {
 
     override addListeners() {
         super.addListeners();
-        // Add mouse event listeners
+
         window.addEventListener('mouseup', this.onMouseUp, false);
         window.addEventListener('mousedown', this.onMouseDown, false);
     }
@@ -213,33 +312,33 @@ export default class BasketballGame extends GameBase {
     }
 
     override start() {
-        // let countdown = GameState.countdownTime;
+        let countdown = GameState.countdownTime;
     
-        // this.countdownTimer.classList.remove('hidden');
-        // this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
+        this.countdownTimer.classList.remove('hidden');
+        this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
 
-        // if (this.countdownInterval !== null) return;
+        if (this.countdownInterval !== null) return;
 
-        // this.countdownInterval = setInterval(() => {
-        //     countdown--;
-        //     this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
+        this.countdownInterval = setInterval(() => {
+            countdown--;
+            this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
 
-        //     if (countdown <= 0) {
-        //         clearInterval(this.countdownInterval!);
-        //         this.countdownInterval = null;
-        //         this.countdownTimer.classList.add('hidden');
-        //         super.start();
-        //         this.lastUpdateTime = this.clock.getElapsedTime();
-        //     }
-        // }, 1000);
-        super.start();
-        this.lastUpdateTime = this.clock.getElapsedTime();
+            if (countdown <= 0) {
+                clearInterval(this.countdownInterval!);
+                this.countdownInterval = null;
+                this.countdownTimer.classList.add('hidden');
+                super.start();
+                this.lastUpdateTime = this.clock.getElapsedTime();
+            }
+        }, 1000);
     }
 
     override reset() {
         super.reset();
 
         this.hud.style.display = 'block';
+
+        this.resetBall();
 
         GameState.reset();
         this.timeRemaining = GameState.time;
@@ -320,70 +419,15 @@ export default class BasketballGame extends GameBase {
             return;
         }
 
-        // Ball physics
-        if (this.currentBall && this.ballInMotion) {
-            // Apply gravity
-            this.ballVelocity.y -= GRAVITY * delta;
-
-            // Update position
-            this.currentBall.position.addScaledVector(this.ballVelocity, delta);
-
-            // / Apply backspin rotation (around local X-axis)
-            this.currentBall.rotateX(this.ballSpinSpeed * delta);
-
-            // Reset if ball falls below floor
-            if (this.currentBall.position.y < this.BALL_LIFETIME) {
-                this.resetBall();
-            }
-        }
+        this.updateBall(delta);
+        this.handleRimCollision();
 
         if (this.hoopScoringBox && !this.hasScoredThisShot && this.currentBall) {
-            // Get the ball's world position
-            const ballPos = this.currentBall.position.clone();
-
-            // Check if ball is inside the scoring box
-            if (this.hoopScoringBox.containsPoint(ballPos)) {
+            if (this.hoopScoringBox.containsPoint(this.currentBall.position)) {
                 this.onScore();
                 this.hasScoredThisShot = true;
             }
         }
-
-        if (this.currentBall && this.ballInMotion && this.hoopRim) {
-            const ballPos = this.currentBall.position;
-            const rimPos = this.hoopRim.position;
-
-            const dx = ballPos.x - rimPos.x;
-            const dz = ballPos.z - rimPos.z;
-            const horizontalDist = Math.sqrt(dx * dx + dz * dz);
-
-            const ballRadius = 0.2;
-
-            // const dy = ballPos.y - rimPos.y;
-
-            // If ball is near the rim edge (not inside)
-            const ringInner = this.RIM_RADIUS - ballRadius;
-            const ringOuter = this.RIM_RADIUS + ballRadius;
-
-            const isTouchingRim = horizontalDist > ringInner && horizontalDist < ringOuter;
-
-            const minY = rimPos.y - ballRadius * 1.2;
-            const maxY = rimPos.y + ballRadius * 0.8;
-            const isVerticalAligned = ballPos.y > minY && ballPos.y < maxY;
-
-            if (isTouchingRim && isVerticalAligned && this.ballVelocity.y < 0) {
-                // Reflect the Y velocity
-                this.ballVelocity.y *= -0.7;
-                this.ballVelocity.x *= 0.8;
-                this.ballVelocity.z *= 0.8;
-
-                // Push ball slightly outside the rim to prevent clipping
-                const outDir = new THREE.Vector3(dx, 0, dz).normalize();
-                this.currentBall.position.x = rimPos.x + outDir.x * ringOuter;
-                this.currentBall.position.z = rimPos.z + outDir.z * ringOuter;
-                this.currentBall.position.y = rimPos.y + ballRadius;
-            }
-        }
-
 
         if (!this.isUnpausing) {
             this.updateHUD();
