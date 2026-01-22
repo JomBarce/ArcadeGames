@@ -9,9 +9,9 @@
     {
         "id": 2,
         "name": "Basketball Game",
-        "description": "Stay tuned for more games!",
+        "description": "Shoot your shot in this basketball skill game!",
         "imgPath": "./icons/basketball.svg",
-        "buttonPath": ""
+        "buttonPath": "basketball"
     },
     {
         "id": 3,
