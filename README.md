@@ -17,5 +17,8 @@ A curated collection of engaging 3D web games, powered by **Three.js** and desig
 ### 1. **Shooting Game**
 Inspired by carnival skill-shot games, this 3D shooting range challenges you to hit randomly generated targets. The game does not feature a crosshair, so you must rely on estimating the angle and trajectory of your shots.
 
-### 2. **Coming Soon...** 
+### 2. **Basketball Game** 
+A carnival-inspired 3D basketball game where players shoot at a boardless hoop. The ball’s movement is controlled by how fast and when the player flicks the mouse, rewarding precision and timing.
+
+### 3. **Coming Soon...** 
 Stay tuned for more exciting games and updates coming soon to this collection!
