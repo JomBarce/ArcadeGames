@@ -1,8 +1,8 @@
 # Created by Kenney (www.kenney.nl)
 
-mtllib foamBulletB.mtl
+mtllib Bullet.mtl
 
-g foamBulletB
+g Bullet
 
 v 0.01000001 -0.03 0
 v 0.009659261 -0.03 -0.002588198

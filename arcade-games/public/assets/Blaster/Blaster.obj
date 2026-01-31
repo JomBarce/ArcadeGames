@@ -1,8 +1,8 @@
 # Created by Kenney (www.kenney.nl)
 
-mtllib blasterG.mtl
+mtllib Blaster.mtl
 
-g blasterG
+g Blaster
 
 v 0.09 0.025 -0.1679348
 v 0.06999999 0.025 -0.1679348

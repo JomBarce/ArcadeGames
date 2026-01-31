@@ -1,8 +1,8 @@
 # Created by Kenney (www.kenney.nl)
 
-mtllib targetA.mtl
+mtllib Target.mtl
 
-g targetA
+g Target
 
 v 0.02500001 0.085 0.1472243
 v -0.02500001 0.085 0.1472243
