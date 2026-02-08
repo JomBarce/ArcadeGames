@@ -60,7 +60,7 @@ export default class BlasterGame extends GameBase {
         if (!this.scene) throw new Error('Scene is not initialized');
 
         // Load and position targets with random positions
-        await AssetManager.loadOBJ('targetA', './assets/Blaster/targetA.obj', './assets/Blaster/targetA.mtl');
+        await AssetManager.loadOBJ('Target', './assets/Blaster/Target.obj', './assets/Blaster/Target.mtl');
         const targets = await Promise.all(Array.from({ length: 10 }).map(async () => {
             const target = await this.createTarget();
 
@@ -94,7 +94,7 @@ export default class BlasterGame extends GameBase {
         }
 
         // Load bullet
-        await AssetManager.loadOBJ('foamBulletB', './assets/Blaster/foamBulletB.obj', './assets/Blaster/foamBulletB.mtl');
+        await AssetManager.loadOBJ('Bullet', './assets/Blaster/Bullet.obj', './assets/Blaster/Bullet.mtl');
 
         // Initial Game State
         GameState.score = 0;
@@ -103,7 +103,7 @@ export default class BlasterGame extends GameBase {
 
 
     private async createTarget(): Promise<THREE.Object3D | null> {
-        const targetModel = AssetManager.getModel('targetA');
+        const targetModel = AssetManager.getModel('Target');
         if (!targetModel) {
             console.error("Failed to load target model");
             return null;
@@ -121,7 +121,7 @@ export default class BlasterGame extends GameBase {
     // Create a blaster object
     private async createBlaster(): Promise<THREE.Object3D | null> {
         // Load blaster material
-        const blasterModel = await AssetManager.loadOBJ('blasterG', './assets/Blaster/blasterG.obj', './assets/Blaster/blasterG.mtl');
+        const blasterModel = await AssetManager.loadOBJ('Blaster', './assets/Blaster/Blaster.obj', './assets/Blaster/Blaster.mtl');
        
         if (!blasterModel) {
             console.error("Failed to load blaster model");
@@ -136,7 +136,7 @@ export default class BlasterGame extends GameBase {
         if (!this.blaster || !this.camera || !this.scene) return;
 
         // Retrieve the cached bullet model
-        const bulletModel = AssetManager.getModel('foamBulletB');
+        const bulletModel = AssetManager.getModel('Bullet');
         if (!bulletModel) {
             console.error("Failed to load bullet model");
             return;
