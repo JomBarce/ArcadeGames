@@ -3,11 +3,22 @@ import * as THREE from 'three';
 import GameBase from './shared/GameBase';
 import GameState from './shared/GameState';
 import AssetManager from './shared/AssetManager';
+import { clamp } from '../utils/math';
 
 export default class CarGame extends GameBase {
     private car: THREE.Object3D | null = null;
     // private enemies: THREE.Object3D[] = [];
     // private enemiesPositionsMap: Map<THREE.Object3D, THREE.Vector3> = new Map();
+    private wheels: {
+        fl: THREE.Object3D | null;
+        fr: THREE.Object3D | null;
+        rl: THREE.Object3D | null;
+        rr: THREE.Object3D | null;
+    } = { fl: null, fr: null, rl: null, rr: null };
+    private frontWheelPivots: {
+        fl: THREE.Object3D | null;
+        fr: THREE.Object3D | null;
+    } = { fl: null, fr: null };
     
     private hud: HTMLDivElement;
     private scoreText: HTMLDivElement;
@@ -23,7 +34,15 @@ export default class CarGame extends GameBase {
     private isUnpausing: boolean = false;
 
     private keys: { [key: string]: boolean } = { forward: false, backward: false, left: false, right: false };
-    
+    private velocity = 0;
+
+    private readonly MAX_SPEED = 20;
+    private readonly ACCELERATION = 20;
+    private readonly BRAKE_FORCE = 30;
+    private readonly FRICTION = 10; 
+    private readonly TURN_SPEED = 3;
+    private readonly WHEEL_RADIUS = 0.03 / 2;
+    private readonly MAX_STEER_ANGLE = Math.PI / 6;
     // private readonly ENEMY_LIFETIME = 20;
     // private readonly ENEMY_RESPAWN_DELAY = 2000;
 
@@ -44,6 +63,10 @@ export default class CarGame extends GameBase {
 		this.hud = hud;
 		this.gameOverScreen = gameOverScreen;
         this.countdownTimer = countdownTimer;
+
+        // Event handler bindings
+        // this.onMouseMove = this.onMouseMove.bind(this);
+        // this.onMouseDown = this.onMouseDown.bind(this);
 
         this.addListeners();
     }
@@ -79,6 +102,49 @@ export default class CarGame extends GameBase {
 
         return carModel;
     }
+
+
+    private updateCarMovement(delta: number) {
+        if (!this.car) return;
+
+        // Acceleration & braking
+
+        if (this.keys.forward) {
+            this.velocity += this.ACCELERATION * delta;
+        } else if (this.keys.backward) {
+            this.velocity -= this.BRAKE_FORCE * delta;
+        } else {
+            if (this.velocity > 0) {
+                this.velocity -= this.FRICTION * delta;
+                if (this.velocity < 0) this.velocity = 0;
+            } else if (this.velocity < 0) {
+                this.velocity += this.FRICTION * delta;
+                if (this.velocity > 0) this.velocity = 0;
+            }
+        }
+
+        this.velocity = clamp(this.velocity, -this.MAX_SPEED * 0.5, this.MAX_SPEED);
+
+        // Steering
+
+        if (Math.abs(this.velocity) > 0.1) {
+            const speedFactor = Math.min( Math.abs(this.velocity) / this.MAX_SPEED, 1 );
+
+            // Reverse steering when backing up
+            const steeringDirection = this.velocity > 0 ? 1 : -1;
+
+            if (this.keys.left) {
+                this.car.rotation.y += this.TURN_SPEED * speedFactor * delta * steeringDirection;
+            }
+
+            if (this.keys.right) {
+                this.car.rotation.y -= this.TURN_SPEED * speedFactor * delta * steeringDirection;
+            }
+        }
+
+        // Accelerate
+        this.car.translateZ(this.velocity * delta);
+    }    
 
     // Handle keyboard click
     private onKeyDown = (event: KeyboardEvent) => {
@@ -236,12 +302,18 @@ export default class CarGame extends GameBase {
         const delta = now - this.lastUpdateTime;
         this.lastUpdateTime = now;
 
-        this.timeRemaining = Math.max(0, this.timeRemaining - delta);
-        GameState.time = this.timeRemaining;
+        // this.timeRemaining = Math.max(0, this.timeRemaining - delta);
+        // GameState.time = this.timeRemaining;
 
         if (this.car) {
-            this.car.rotation.y += 0.01;
+            // this.car.rotation.y += 0.01;
+            this.updateCarMovement(delta);
         }
+
+        // if (this.timeRemaining <= 0) {
+        //     this.endGame();
+        //     return;
+        // }
 
         if (!this.isUnpausing) {
             this.updateHUD();
