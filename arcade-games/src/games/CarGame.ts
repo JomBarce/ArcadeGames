@@ -9,16 +9,6 @@ export default class CarGame extends GameBase {
     private car: THREE.Object3D | null = null;
     // private enemies: THREE.Object3D[] = [];
     // private enemiesPositionsMap: Map<THREE.Object3D, THREE.Vector3> = new Map();
-    private wheels: {
-        fl: THREE.Object3D | null;
-        fr: THREE.Object3D | null;
-        rl: THREE.Object3D | null;
-        rr: THREE.Object3D | null;
-    } = { fl: null, fr: null, rl: null, rr: null };
-    private frontWheelPivots: {
-        fl: THREE.Object3D | null;
-        fr: THREE.Object3D | null;
-    } = { fl: null, fr: null };
     
     private hud: HTMLDivElement;
     private scoreText: HTMLDivElement;
@@ -28,7 +18,6 @@ export default class CarGame extends GameBase {
     private finalScore: HTMLParagraphElement;
 
     private lastUpdateTime = 0;
-    private timeRemaining = 10;            // change time to distance and every car dodge can add score
     private pauseStartTime = 0;
     private countdownInterval: ReturnType<typeof setInterval> | null = null;
     private isUnpausing: boolean = false;
@@ -41,8 +30,6 @@ export default class CarGame extends GameBase {
     private readonly BRAKE_FORCE = 30;
     private readonly FRICTION = 10; 
     private readonly TURN_SPEED = 3;
-    private readonly WHEEL_RADIUS = 0.03 / 2;
-    private readonly MAX_STEER_ANGLE = Math.PI / 6;
     // private readonly ENEMY_LIFETIME = 20;
     // private readonly ENEMY_RESPAWN_DELAY = 2000;
 
@@ -232,7 +219,6 @@ export default class CarGame extends GameBase {
         this.hud.style.display = 'block';
 
         GameState.reset();
-        this.timeRemaining = GameState.time;
         this.lastUpdateTime = this.clock.getElapsedTime();
 
         this.addListeners();
