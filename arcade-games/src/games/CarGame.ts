@@ -9,6 +9,12 @@ export default class CarGame extends GameBase {
     private car: THREE.Object3D | null = null;
     // private enemies: THREE.Object3D[] = [];
     // private enemiesPositionsMap: Map<THREE.Object3D, THREE.Vector3> = new Map();
+    private wheels: {
+        fl: THREE.Object3D | null;
+        fr: THREE.Object3D | null;
+        rl: THREE.Object3D | null;
+        rr: THREE.Object3D | null;
+    } = { fl: null, fr: null, rl: null, rr: null };
     
     private hud: HTMLDivElement;
     private scoreText: HTMLDivElement;
@@ -25,14 +31,15 @@ export default class CarGame extends GameBase {
     private keys: { [key: string]: boolean } = { forward: false, backward: false, left: false, right: false };
     private velocity = 0;
 
-    private readonly MAX_SPEED = 20;
+    private readonly MAX_SPEED = 100;
     private readonly ACCELERATION = 20;
     private readonly BRAKE_FORCE = 30;
     private readonly FRICTION = 10; 
     private readonly TURN_SPEED = 3;
+    private readonly WHEEL_RADIUS = 0.03 / 2;
     // private readonly ENEMY_LIFETIME = 20;
     // private readonly ENEMY_RESPAWN_DELAY = 2000;
-
+    
     constructor(
         canvas: HTMLCanvasElement,
         hud: HTMLDivElement,
@@ -64,13 +71,42 @@ export default class CarGame extends GameBase {
         this.camera?.position.set(5, 5, 10);
         this.camera?.lookAt(0, 0, 0);
 
+        // Load and position targets with random positions
+        // await AssetManager.loadOBJ('targetA', './assets/Blaster/targetA.obj', './assets/Blaster/targetA.mtl');
+        // const targets = await Promise.all(Array.from({ length: 10 }).map(async () => {
+        //     const target = await this.createTarget();
+
+        //     if (!target) return null;
+
+        //     // Randomize target position
+        //     target.position.set(
+        //         Math.random() * 4 - 2,  // -2 to 2
+        //         Math.random() * 4 - 2,  // -2 to 2
+        //         Math.random() * 7 - 11  // -2 to -10
+        //     );
+
+        //     this.targets.push(target);
+        //     this.targetPositionsMap.set(target, target.position.clone());
+
+        //     return target;
+        // }));
+
+        // Filter and Add the targets to the scene
+        // const validTargets = targets.filter(Boolean) as THREE.Object3D[];
+        // this.scene.add(...validTargets);
+
         // Load and create the car
         this.car = await this.createCar();
         if (this.car && this.camera) {
             this.car.position.set(0, 0, 0);
             this.car.rotation.y = Math.PI;
             this.scene.add(this.car);
+
+            this.setupWheels();
         }
+
+        // Load enemy
+        // await AssetManager.loadOBJ('carEnemy1', './assets/Blaster/foamBulletB.obj', './assets/Blaster/foamBulletB.mtl');
 
         // Initial Game State
         GameState.score = 0;
@@ -90,6 +126,14 @@ export default class CarGame extends GameBase {
         return carModel;
     }
 
+    private setupWheels() {
+        if (!this.car || !this.wheels) return;
+
+        this.wheels.fl = this.car.getObjectByName('FL_WHEEL') ?? null;
+        this.wheels.fr = this.car.getObjectByName('FR_WHEEL') ?? null;
+        this.wheels.rl = this.car.getObjectByName('RL_WHEEL') ?? null;
+        this.wheels.rr = this.car.getObjectByName('RR_WHEEL') ?? null;
+    }
 
     private updateCarMovement(delta: number) {
         if (!this.car) return;
@@ -130,7 +174,13 @@ export default class CarGame extends GameBase {
         }
 
         // Accelerate
+
         this.car.translateZ(this.velocity * delta);
+
+        const rollAngle = (this.velocity * delta) / this.WHEEL_RADIUS;
+        [this.wheels.fl, this.wheels.fr, this.wheels.rl, this.wheels.rr].forEach(wheel => {
+            if (wheel) wheel.rotation.x -= rollAngle;
+        });
     }    
 
     // Handle keyboard click
