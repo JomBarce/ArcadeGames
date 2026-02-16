@@ -15,6 +15,10 @@ export default class CarGame extends GameBase {
         rl: THREE.Object3D | null;
         rr: THREE.Object3D | null;
     } = { fl: null, fr: null, rl: null, rr: null };
+    private frontWheelPivots: {
+        fl: THREE.Object3D | null;
+        fr: THREE.Object3D | null;
+    } = { fl: null, fr: null };
     
     private hud: HTMLDivElement;
     private scoreText: HTMLDivElement;
@@ -31,12 +35,13 @@ export default class CarGame extends GameBase {
     private keys: { [key: string]: boolean } = { forward: false, backward: false, left: false, right: false };
     private velocity = 0;
 
-    private readonly MAX_SPEED = 100;
+    private readonly MAX_SPEED = 20;
     private readonly ACCELERATION = 20;
     private readonly BRAKE_FORCE = 30;
     private readonly FRICTION = 10; 
     private readonly TURN_SPEED = 3;
     private readonly WHEEL_RADIUS = 0.03 / 2;
+    private readonly MAX_STEER_ANGLE = Math.PI / 6;
     // private readonly ENEMY_LIFETIME = 20;
     // private readonly ENEMY_RESPAWN_DELAY = 2000;
     
@@ -71,30 +76,6 @@ export default class CarGame extends GameBase {
         this.camera?.position.set(5, 5, 10);
         this.camera?.lookAt(0, 0, 0);
 
-        // Load and position targets with random positions
-        // await AssetManager.loadOBJ('targetA', './assets/Blaster/targetA.obj', './assets/Blaster/targetA.mtl');
-        // const targets = await Promise.all(Array.from({ length: 10 }).map(async () => {
-        //     const target = await this.createTarget();
-
-        //     if (!target) return null;
-
-        //     // Randomize target position
-        //     target.position.set(
-        //         Math.random() * 4 - 2,  // -2 to 2
-        //         Math.random() * 4 - 2,  // -2 to 2
-        //         Math.random() * 7 - 11  // -2 to -10
-        //     );
-
-        //     this.targets.push(target);
-        //     this.targetPositionsMap.set(target, target.position.clone());
-
-        //     return target;
-        // }));
-
-        // Filter and Add the targets to the scene
-        // const validTargets = targets.filter(Boolean) as THREE.Object3D[];
-        // this.scene.add(...validTargets);
-
         // Load and create the car
         this.car = await this.createCar();
         if (this.car && this.camera) {
@@ -103,10 +84,8 @@ export default class CarGame extends GameBase {
             this.scene.add(this.car);
 
             this.setupWheels();
+            this.setupFrontWheelPivots();
         }
-
-        // Load enemy
-        // await AssetManager.loadOBJ('carEnemy1', './assets/Blaster/foamBulletB.obj', './assets/Blaster/foamBulletB.mtl');
 
         // Initial Game State
         GameState.score = 0;
@@ -135,11 +114,26 @@ export default class CarGame extends GameBase {
         this.wheels.rr = this.car.getObjectByName('RR_WHEEL') ?? null;
     }
 
+    private setupFrontWheelPivots() {
+        const createPivot = (wheel: THREE.Object3D | null): THREE.Object3D | null => {
+            if (!wheel || !wheel.parent) return null;
+
+            const pivot = new THREE.Object3D();
+            wheel.parent.add(pivot);
+            pivot.position.copy(wheel.position);
+            pivot.add(wheel);
+            wheel.position.set(0, 0, 0);
+            return pivot;
+        };
+
+        this.frontWheelPivots.fl = createPivot(this.wheels.fl);
+        this.frontWheelPivots.fr = createPivot(this.wheels.fr);
+    }
+
     private updateCarMovement(delta: number) {
         if (!this.car) return;
 
         // Acceleration & braking
-
         if (this.keys.forward) {
             this.velocity += this.ACCELERATION * delta;
         } else if (this.keys.backward) {
@@ -157,7 +151,6 @@ export default class CarGame extends GameBase {
         this.velocity = clamp(this.velocity, -this.MAX_SPEED * 0.5, this.MAX_SPEED);
 
         // Steering
-
         if (Math.abs(this.velocity) > 0.1) {
             const speedFactor = Math.min( Math.abs(this.velocity) / this.MAX_SPEED, 1 );
 
@@ -174,9 +167,18 @@ export default class CarGame extends GameBase {
         }
 
         // Accelerate
-
         this.car.translateZ(this.velocity * delta);
 
+        // Steering Animation
+        let steer = 0;
+        if (this.keys.left) steer = 1;
+        if (this.keys.right) steer = -1;
+        const steerAngle = steer * this.MAX_STEER_ANGLE;
+
+        if (this.frontWheelPivots.fl) this.frontWheelPivots.fl.rotation.y = steerAngle;
+        if (this.frontWheelPivots.fr) this.frontWheelPivots.fr.rotation.y = steerAngle;
+
+        // Wheel Animation
         const rollAngle = (this.velocity * delta) / this.WHEEL_RADIUS;
         [this.wheels.fl, this.wheels.fr, this.wheels.rl, this.wheels.rr].forEach(wheel => {
             if (wheel) wheel.rotation.x -= rollAngle;
