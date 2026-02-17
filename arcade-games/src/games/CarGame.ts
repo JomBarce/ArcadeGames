@@ -34,8 +34,9 @@ export default class CarGame extends GameBase {
 
     private keys: { [key: string]: boolean } = { forward: false, backward: false, left: false, right: false };
     private velocity = 0;
+    private cameraOffsetZ = -5;
 
-    private readonly MAX_SPEED = 20;
+    private readonly MAX_SPEED = 100;
     private readonly ACCELERATION = 20;
     private readonly BRAKE_FORCE = 30;
     private readonly FRICTION = 10; 
@@ -44,7 +45,8 @@ export default class CarGame extends GameBase {
     private readonly MAX_STEER_ANGLE = Math.PI / 6;
     // private readonly ENEMY_LIFETIME = 20;
     // private readonly ENEMY_RESPAWN_DELAY = 2000;
-    
+
+
     constructor(
         canvas: HTMLCanvasElement,
         hud: HTMLDivElement,
@@ -73,9 +75,6 @@ export default class CarGame extends GameBase {
     async initialize() {
         if (!this.scene) throw new Error('Scene is not initialized');
 
-        this.camera?.position.set(5, 5, 10);
-        this.camera?.lookAt(0, 0, 0);
-
         // Load and create the car
         this.car = await this.createCar();
         if (this.car && this.camera) {
@@ -103,6 +102,20 @@ export default class CarGame extends GameBase {
         }
 
         return carModel;
+    }
+
+    private updateCamera() {
+        if (!this.camera || !this.car) return null;
+       
+        const offset = new THREE.Vector3(0, 5, this.cameraOffsetZ);
+        offset.applyQuaternion(this.car.quaternion);
+
+        this.camera.position.copy(this.car.position).add(offset);
+
+        const lookTarget = this.car.position.clone();
+        lookTarget.y += 2.5;
+        
+        this.camera.lookAt(lookTarget);
     }
 
     private setupWheels() {
@@ -204,6 +217,10 @@ export default class CarGame extends GameBase {
             case 'ArrowRight': 
                 this.keys.right = true;
                 break;
+
+            case 'Space':
+                this.cameraOffsetZ = 5;
+                break;
         }
     };
 
@@ -224,6 +241,10 @@ export default class CarGame extends GameBase {
             case 'KeyD': 
             case 'ArrowRight': 
                 this.keys.right = false;
+                break;
+
+            case 'Space':
+                this.cameraOffsetZ = -5;
                 break;
         }
     };
@@ -346,6 +367,7 @@ export default class CarGame extends GameBase {
         if (this.car) {
             // this.car.rotation.y += 0.01;
             this.updateCarMovement(delta);
+            this.updateCamera();
         }
 
         // if (this.timeRemaining <= 0) {
