@@ -46,6 +46,9 @@ export default class CarGame extends GameBase {
     // private readonly ENEMY_LIFETIME = 20;
     // private readonly ENEMY_RESPAWN_DELAY = 2000;
 
+    private readonly TILE_SIZE = 10;
+    private readonly GRID_SIZE = 100;
+
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -74,6 +77,8 @@ export default class CarGame extends GameBase {
 
     async initialize() {
         if (!this.scene) throw new Error('Scene is not initialized');
+
+        this.generateMapGrid();
 
         // Load and create the car
         this.car = await this.createCar();
@@ -104,9 +109,36 @@ export default class CarGame extends GameBase {
         return carModel;
     }
 
+    private generateMapGrid() {
+
+        const groundGeometry = new THREE.PlaneGeometry(
+            this.TILE_SIZE,
+            this.TILE_SIZE
+        );
+
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x444444,
+            wireframe: true
+        });
+
+        const offset = (this.GRID_SIZE * this.TILE_SIZE) / 2;
+
+        for (let x = 0; x < this.GRID_SIZE; x++) {
+            for (let z = 0; z < this.GRID_SIZE; z++) {
+
+                const tile = new THREE.Mesh(groundGeometry, groundMaterial);
+
+                tile.rotation.x = -Math.PI / 2;
+                tile.position.set(x * this.TILE_SIZE - offset, 0, z * this.TILE_SIZE - offset);
+
+                this.scene?.add(tile);
+            }
+        }
+    }
+
     private updateCamera() {
-        if (!this.camera || !this.car) return null;
-       
+        if (!this.camera || !this.car) return;
+
         const offset = new THREE.Vector3(0, 5, this.cameraOffsetZ);
         offset.applyQuaternion(this.car.quaternion);
 
@@ -114,7 +146,7 @@ export default class CarGame extends GameBase {
 
         const lookTarget = this.car.position.clone();
         lookTarget.y += 2.5;
-        
+
         this.camera.lookAt(lookTarget);
     }
 
