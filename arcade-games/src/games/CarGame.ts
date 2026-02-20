@@ -35,6 +35,7 @@ export default class CarGame extends GameBase {
     private keys: { [key: string]: boolean } = { forward: false, backward: false, left: false, right: false };
     private velocity = 0;
     private cameraOffsetZ = -5;
+    private currentLookAt = new THREE.Vector3();
 
     private readonly MAX_SPEED = 100;
     private readonly ACCELERATION = 20;
@@ -110,7 +111,6 @@ export default class CarGame extends GameBase {
     }
 
     private generateMapGrid() {
-
         const groundGeometry = new THREE.PlaneGeometry(
             this.TILE_SIZE,
             this.TILE_SIZE
@@ -126,6 +126,7 @@ export default class CarGame extends GameBase {
         for (let x = 0; x < this.GRID_SIZE; x++) {
             for (let z = 0; z < this.GRID_SIZE; z++) {
 
+                // Ground
                 const tile = new THREE.Mesh(groundGeometry, groundMaterial);
 
                 tile.rotation.x = -Math.PI / 2;
@@ -141,13 +142,15 @@ export default class CarGame extends GameBase {
 
         const offset = new THREE.Vector3(0, 5, this.cameraOffsetZ);
         offset.applyQuaternion(this.car.quaternion);
-
-        this.camera.position.copy(this.car.position).add(offset);
+        
+        const targetPos = new THREE.Vector3().copy(this.car.position).add(offset);
+        this.camera.position.lerp(targetPos, 0.2);
 
         const lookTarget = this.car.position.clone();
         lookTarget.y += 2.5;
 
-        this.camera.lookAt(lookTarget);
+        this.currentLookAt.lerp(lookTarget, 0.2); 
+        this.camera.lookAt(this.currentLookAt);
     }
 
     private setupWheels() {
