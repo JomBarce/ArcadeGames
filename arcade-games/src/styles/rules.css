@@ -1,4 +1,4 @@
-/* Screens Below 1100px */
+/* Screens */
 @media (max-width: 1100px) {
     .carousel-container {
         overflow-x: auto;
@@ -38,4 +38,10 @@
     canvas {
         visibility: hidden;
     }
+}
+
+/* Animations */
+@keyframes pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
 }
