@@ -26,6 +26,7 @@ export default class BasketballGame extends GameBase {
     private countdownTimer: HTMLDivElement;
     private gameOverScreen: HTMLDivElement;
     private finalScore: HTMLParagraphElement;
+    private countdownNumber!: HTMLDivElement;
 
     private lastUpdateTime = 0;
     private timeRemaining = 60;
@@ -43,6 +44,7 @@ export default class BasketballGame extends GameBase {
     private readonly RIM_RESTITUTION = 1.2;
     private readonly RIM_FRICTION = 0.1;
     private readonly BALL_COLLIDER_SCALE = .5;
+
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -107,6 +109,10 @@ export default class BasketballGame extends GameBase {
         // Initial Game State
         GameState.score = 0;
         GameState.time = 60;
+
+        this.countdownNumber = this.countdownTimer.querySelector(
+            ".countdown-number"
+        ) as HTMLDivElement;
     }
 
     private resetBall = () => {
@@ -207,7 +213,7 @@ export default class BasketballGame extends GameBase {
                         this.currentBall.position.y = rimPos.y + this.RIM_VERTICAL_THICKNESS * 0.5 + BALL_R + 0.001;
                     }
                 } else {
-                    // SIDE OF RIM HIT
+                    // Side rim hit
                     const normal = new THREE.Vector3(dx, 0, dz).normalize();
 
                     const v = this.ballVelocity.clone();
@@ -283,14 +289,12 @@ export default class BasketballGame extends GameBase {
         const dy = this.dragStart.y - this.dragEnd.y;
         const dt = (this.dragEnd.time - this.dragStart.time) / 1000;
 
-        const speed = Math.sqrt(dx * dx + dy * dy) / dt;
         const screenDir = new THREE.Vector2(dx, dy).normalize();
         const flickDirection = new THREE.Vector3(screenDir.x, screenDir.y + this.BALL_ARC, -1).normalize();
-
         flickDirection.applyQuaternion(this.camera.quaternion);
 
+        const speed = Math.sqrt(dx * dx + dy * dy) / dt;
         const velocity = flickDirection.multiplyScalar(speed * this.BALL_SPEED);
-
         this.ballVelocity.copy(velocity);
         this.ballSpinSpeed = 1 - Math.min(5, speed * 0.02);
         this.ballInMotion = true;
@@ -311,26 +315,41 @@ export default class BasketballGame extends GameBase {
         this.onMouseDown && window.removeEventListener('mousedown', this.onMouseDown, false);
     }
 
-    override start() {
-        let countdown = GameState.countdownTime;
-    
-        this.countdownTimer.classList.remove('hidden');
-        this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
-
+    private startCountdown(onComplete: () => void) {
         if (this.countdownInterval !== null) return;
+        
+        let countdown = GameState.countdownTime;
+
+        this.countdownTimer.classList.remove('hidden');
+
+        this.countdownNumber.textContent = countdown.toString();
+        this.countdownNumber.classList.remove("pop");
+        void this.countdownNumber.offsetWidth;
+        this.countdownNumber.classList.add("pop");
 
         this.countdownInterval = setInterval(() => {
             countdown--;
-            this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
+
+            this.countdownNumber.textContent = countdown.toString();
+            this.countdownNumber.classList.remove("pop");
+            void this.countdownNumber.offsetWidth;
+            this.countdownNumber.classList.add("pop");
 
             if (countdown <= 0) {
                 clearInterval(this.countdownInterval!);
                 this.countdownInterval = null;
                 this.countdownTimer.classList.add('hidden');
-                super.start();
-                this.lastUpdateTime = this.clock.getElapsedTime();
+
+                onComplete();
             }
         }, 1000);
+    }
+
+    override start() {
+        this.startCountdown(() => {
+            super.start();
+            this.lastUpdateTime = this.clock.getElapsedTime();
+        });
     }
 
     override reset() {
@@ -357,33 +376,20 @@ export default class BasketballGame extends GameBase {
     }
 
     override unpause() {
-        let countdown = GameState.countdownTime;
-    
-        this.countdownTimer.classList.remove('hidden');
-        this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
-
         if (this.countdownInterval !== null || this.isUnpausing) return;
 
         this.isUnpausing = true;
 
-        this.countdownInterval = setInterval(() => {
-            countdown--;
-            this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
+        this.startCountdown(() => {
+            const now = this.clock.getElapsedTime();
+            const pauseDuration = now - this.pauseStartTime;
+            this.lastUpdateTime += pauseDuration;
 
-            if (countdown <= 0) {
-                clearInterval(this.countdownInterval!);
-                this.countdownInterval = null;
-                this.countdownTimer.classList.add('hidden');
-                
-                const now = this.clock.getElapsedTime();
-                const pauseDuration = now - this.pauseStartTime;
-                this.lastUpdateTime += pauseDuration;
-                this.isUnpausing = false;
+            this.isUnpausing = false;
 
-                super.unpause();
-                this.addListeners();
-            }
-        }, 1000);
+            super.unpause();
+            this.addListeners();
+        });
     }
 
     override endGame() {
