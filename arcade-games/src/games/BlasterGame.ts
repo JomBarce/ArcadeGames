@@ -16,10 +16,11 @@ export default class BlasterGame extends GameBase {
     
     private hud: HTMLDivElement;
     private scoreText: HTMLDivElement;
-	private timerText: HTMLDivElement;
+    private timerText: HTMLDivElement;
     private countdownTimer: HTMLDivElement;
     private gameOverScreen: HTMLDivElement;
     private finalScore: HTMLParagraphElement;
+    private countdownNumber!: HTMLDivElement;
 
     private lastUpdateTime = 0;
     private timeRemaining = 60;
@@ -34,19 +35,19 @@ export default class BlasterGame extends GameBase {
     constructor(
         canvas: HTMLCanvasElement,
         hud: HTMLDivElement,
-		scoreText: HTMLDivElement,
-		timerText: HTMLDivElement,
+        scoreText: HTMLDivElement,
+        timerText: HTMLDivElement,
         countdownTimer: HTMLDivElement,
-		gameOverScreen: HTMLDivElement,
+        gameOverScreen: HTMLDivElement,
         finalScore: HTMLParagraphElement
     ) {
         super(canvas);
 
         this.scoreText = scoreText;
-		this.timerText = timerText;
-		this.finalScore = finalScore;
-		this.hud = hud;
-		this.gameOverScreen = gameOverScreen;
+        this.timerText = timerText;
+        this.finalScore = finalScore;
+        this.hud = hud;
+        this.gameOverScreen = gameOverScreen;
         this.countdownTimer = countdownTimer;
 
         // Event handler bindings
@@ -98,7 +99,11 @@ export default class BlasterGame extends GameBase {
 
         // Initial Game State
         GameState.score = 0;
-		GameState.time = 60;
+        GameState.time = 60;
+
+        this.countdownNumber = this.countdownTimer.querySelector(
+            ".countdown-number"
+        ) as HTMLDivElement;
     }
 
 
@@ -122,7 +127,7 @@ export default class BlasterGame extends GameBase {
     private async createBlaster(): Promise<THREE.Object3D | null> {
         // Load blaster material
         const blasterModel = await AssetManager.loadOBJ('Blaster', './assets/Blaster/Blaster.obj', './assets/Blaster/Blaster.mtl');
-       
+    
         if (!blasterModel) {
             console.error("Failed to load blaster model");
             return null;
@@ -201,7 +206,7 @@ export default class BlasterGame extends GameBase {
         
         // Notify score change
         GameState.score += 100;
-		this.updateHUD();
+        this.updateHUD();
         
         // Respawn the target 
         setTimeout(() => {
@@ -250,30 +255,45 @@ export default class BlasterGame extends GameBase {
         this.onMouseDown && window.removeEventListener('mousedown', this.onMouseDown, false);
     }
 
-    override start() {
-        let countdown = GameState.countdownTime;
-    
-        this.countdownTimer.classList.remove('hidden');
-        this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
-
+    private startCountdown(onComplete: () => void) {
         if (this.countdownInterval !== null) return;
+        
+        let countdown = GameState.countdownTime;
+
+        this.countdownTimer.classList.remove('hidden');
+
+        this.countdownNumber.textContent = countdown.toString();
+        this.countdownNumber.classList.remove("pop");
+        void this.countdownNumber.offsetWidth;
+        this.countdownNumber.classList.add("pop");
 
         this.countdownInterval = setInterval(() => {
             countdown--;
-            this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
+
+            this.countdownNumber.textContent = countdown.toString();
+            this.countdownNumber.classList.remove("pop");
+            void this.countdownNumber.offsetWidth;
+            this.countdownNumber.classList.add("pop");
 
             if (countdown <= 0) {
                 clearInterval(this.countdownInterval!);
                 this.countdownInterval = null;
                 this.countdownTimer.classList.add('hidden');
-                super.start();
-                this.lastUpdateTime = this.clock.getElapsedTime();
+
+                onComplete();
             }
         }, 1000);
-	}
+    }
+
+    override start() {
+        this.startCountdown(() => {
+            super.start();
+            this.lastUpdateTime = this.clock.getElapsedTime();
+        });
+    }
 
     override reset() {
-		super.reset();
+        super.reset();
 
         this.hud.style.display = 'block';
 
@@ -287,58 +307,45 @@ export default class BlasterGame extends GameBase {
 
         this.addListeners();
         this.updateHUD()
-	}
+    }
 
     override pause() {
-		super.pause();
+        super.pause();
 
         this.pauseStartTime = this.clock.getElapsedTime();
         
         this.removeListeners();
-	}
+    }
 
     override unpause() {
-        let countdown = GameState.countdownTime;
-    
-        this.countdownTimer.classList.remove('hidden');
-        this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
-
         if (this.countdownInterval !== null || this.isUnpausing) return;
 
         this.isUnpausing = true;
 
-        this.countdownInterval = setInterval(() => {
-            countdown--;
-            this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
+        this.startCountdown(() => {
+            const now = this.clock.getElapsedTime();
+            const pauseDuration = now - this.pauseStartTime;
+            this.lastUpdateTime += pauseDuration;
 
-            if (countdown <= 0) {
-                clearInterval(this.countdownInterval!);
-                this.countdownInterval = null;
-                this.countdownTimer.classList.add('hidden');
-                
-                const now = this.clock.getElapsedTime();
-                const pauseDuration = now - this.pauseStartTime;
-                this.lastUpdateTime += pauseDuration;
-                this.isUnpausing = false;
+            this.isUnpausing = false;
 
-                super.unpause();
-                this.addListeners();
-            }
-        }, 1000);
+            super.unpause();
+            this.addListeners();
+        });
     }
 
     override endGame() {
-		super.endGame();
+        super.endGame();
 
-		GameState.saveHighScore("blaster");
+        GameState.saveHighScore("blaster");
 
-		this.hud.style.display = 'none';
-		this.finalScore.innerHTML = `
-			Your score: ${GameState.score}<br>
-			High score: ${GameState.getHighScore("blaster")}
-		`;
-		this.gameOverScreen.classList.remove('hidden');
-	}
+        this.hud.style.display = 'none';
+        this.finalScore.innerHTML = `
+            Your score: ${GameState.score}<br>
+            High score: ${GameState.getHighScore("blaster")}
+        `;
+        this.gameOverScreen.classList.remove('hidden');
+    }
 
     private updateHUD() {
         this.scoreText.textContent = `Score: ${GameState.score}`;
