@@ -3,11 +3,10 @@ export default class GameState {
 	static time = 60;
 	static highScore = 0;
 	static countdownTime = 3;
-	static initialTime = 60;
 
 	static reset() {
 		GameState.score = 0;
-		GameState.time = GameState.initialTime;
+		GameState.time = 60;
 	}
 
 	static saveHighScore(gameName: string) {
