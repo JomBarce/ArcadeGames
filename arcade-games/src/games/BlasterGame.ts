@@ -23,7 +23,6 @@ export default class BlasterGame extends GameBase {
     private countdownNumber!: HTMLDivElement;
 
     private lastUpdateTime = 0;
-    private timeRemaining = 60;
     private pauseStartTime = 0;
     private countdownInterval: ReturnType<typeof setInterval> | null = null;
     private isUnpausing: boolean = false;
@@ -98,9 +97,6 @@ export default class BlasterGame extends GameBase {
         await AssetManager.loadOBJ('Bullet', './assets/Blaster/Bullet.obj', './assets/Blaster/Bullet.mtl');
 
         // Initial Game State
-        GameState.score = 0;
-        GameState.time = 60;
-
         this.countdownNumber = this.countdownTimer.querySelector(
             ".countdown-number"
         ) as HTMLDivElement;
@@ -302,7 +298,6 @@ export default class BlasterGame extends GameBase {
         this.bulletVelocities.clear();
 
         GameState.reset();
-        this.timeRemaining = GameState.time;
         this.lastUpdateTime = this.clock.getElapsedTime();
 
         this.addListeners();
@@ -345,6 +340,8 @@ export default class BlasterGame extends GameBase {
             High score: ${GameState.getHighScore("blaster")}
         `;
         this.gameOverScreen.classList.remove('hidden');
+
+        GameState.reset();
     }
 
     private updateHUD() {
@@ -359,10 +356,9 @@ export default class BlasterGame extends GameBase {
         const delta = now - this.lastUpdateTime;
         this.lastUpdateTime = now;
 
-        this.timeRemaining = Math.max(0, this.timeRemaining - delta);
-        GameState.time = this.timeRemaining;
+        GameState.time = Math.max(0, GameState.time - delta);
 
-        if (this.timeRemaining <= 0) {
+        if (GameState.time <= 0) {
             this.endGame();
             return;
         }
