@@ -26,6 +26,7 @@ export default class CarGame extends GameBase {
     private countdownTimer: HTMLDivElement;
     private gameOverScreen: HTMLDivElement;
     private finalScore: HTMLParagraphElement;
+    private countdownNumber!: HTMLDivElement;
 
     private lastUpdateTime = 0;
     private pauseStartTime = 0;
@@ -69,10 +70,6 @@ export default class CarGame extends GameBase {
 		this.gameOverScreen = gameOverScreen;
         this.countdownTimer = countdownTimer;
 
-        // Event handler bindings
-        // this.onMouseMove = this.onMouseMove.bind(this);
-        // this.onMouseDown = this.onMouseDown.bind(this);
-
         this.addListeners();
     }
 
@@ -93,8 +90,9 @@ export default class CarGame extends GameBase {
         }
 
         // Initial Game State
-        GameState.score = 0;
-		GameState.time = 60;
+        this.countdownNumber = this.countdownTimer.querySelector(
+            ".countdown-number"
+        ) as HTMLDivElement;
     }
 
     // Create a car object
@@ -297,32 +295,47 @@ export default class CarGame extends GameBase {
         window.addEventListener('keyup', this.onKeyUp);
     }
 
+    private startCountdown(onComplete: () => void) {
+        if (this.countdownInterval !== null) return;
+        
+        let countdown = GameState.countdownTime;
+
+        this.countdownTimer.classList.remove('hidden');
+
+        this.countdownNumber.textContent = countdown.toString();
+        this.countdownNumber.classList.remove("pop");
+        void this.countdownNumber.offsetWidth;
+        this.countdownNumber.classList.add("pop");
+
+        this.countdownInterval = setInterval(() => {
+            countdown--;
+
+            this.countdownNumber.textContent = countdown.toString();
+            this.countdownNumber.classList.remove("pop");
+            void this.countdownNumber.offsetWidth;
+            this.countdownNumber.classList.add("pop");
+
+            if (countdown <= 0) {
+                clearInterval(this.countdownInterval!);
+                this.countdownInterval = null;
+                this.countdownTimer.classList.add('hidden');
+
+                onComplete();
+            }
+        }, 1000);
+    }
+
     override start() {
-        // let countdown = GameState.countdownTime;
-    
-        // this.countdownTimer.classList.remove('hidden');
-        // this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
-
-        // if (this.countdownInterval !== null) return;
-
-        // this.countdownInterval = setInterval(() => {
-        //     countdown--;
-        //     this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
-
-        //     if (countdown <= 0) {
-        //         clearInterval(this.countdownInterval!);
-        //         this.countdownInterval = null;
-        //         this.countdownTimer.classList.add('hidden');
-        //         super.start();
-        //         this.lastUpdateTime = this.clock.getElapsedTime();
-        //     }
-        // }, 1000);
+        // this.startCountdown(() => {
+        //     super.start();
+        //     this.lastUpdateTime = this.clock.getElapsedTime();
+        // });
         super.start();
         this.lastUpdateTime = this.clock.getElapsedTime();
-	}
+    }
 
     override reset() {
-		super.reset();
+        super.reset();
 
         this.hud.style.display = 'block';
 
@@ -331,7 +344,7 @@ export default class CarGame extends GameBase {
 
         this.addListeners();
         this.updateHUD()
-	}
+    }
 
     override pause() {
 		super.pause();
@@ -342,46 +355,35 @@ export default class CarGame extends GameBase {
 	}
 
     override unpause() {
-        let countdown = GameState.countdownTime;
-    
-        this.countdownTimer.classList.remove('hidden');
-        this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
-
         if (this.countdownInterval !== null || this.isUnpausing) return;
 
         this.isUnpausing = true;
 
-        this.countdownInterval = setInterval(() => {
-            countdown--;
-            this.countdownTimer.innerHTML = `<h3>Starting in: ${countdown}s</h3>`;
+        this.startCountdown(() => {
+            const now = this.clock.getElapsedTime();
+            const pauseDuration = now - this.pauseStartTime;
+            this.lastUpdateTime += pauseDuration;
 
-            if (countdown <= 0) {
-                clearInterval(this.countdownInterval!);
-                this.countdownInterval = null;
-                this.countdownTimer.classList.add('hidden');
-                
-                const now = this.clock.getElapsedTime();
-                const pauseDuration = now - this.pauseStartTime;
-                this.lastUpdateTime += pauseDuration;
-                this.isUnpausing = false;
+            this.isUnpausing = false;
 
-                super.unpause();
-                this.addListeners();
-            }
-        }, 1000);
+            super.unpause();
+            this.addListeners();
+        });
     }
 
     override endGame() {
 		super.endGame();
 
-		GameState.saveHighScore("blaster");
+		GameState.saveHighScore("car");
 
 		this.hud.style.display = 'none';
 		this.finalScore.innerHTML = `
 			Your score: ${GameState.score}<br>
-			High score: ${GameState.getHighScore("blaster")}
+			High score: ${GameState.getHighScore("car")}
 		`;
 		this.gameOverScreen.classList.remove('hidden');
+
+        GameState.reset();
 	}
 
     private updateHUD() {
@@ -396,8 +398,7 @@ export default class CarGame extends GameBase {
         const delta = now - this.lastUpdateTime;
         this.lastUpdateTime = now;
 
-        // this.timeRemaining = Math.max(0, this.timeRemaining - delta);
-        // GameState.time = this.timeRemaining;
+        GameState.time = Math.max(0, GameState.time - delta);
 
         if (this.car) {
             // this.car.rotation.y += 0.01;
@@ -405,7 +406,7 @@ export default class CarGame extends GameBase {
             this.updateCamera();
         }
 
-        // if (this.timeRemaining <= 0) {
+        // if (GameState.time <= 0) {
         //     this.endGame();
         //     return;
         // }
