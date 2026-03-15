@@ -49,10 +49,6 @@ export default class BlasterGame extends GameBase {
         this.gameOverScreen = gameOverScreen;
         this.countdownTimer = countdownTimer;
 
-        // Event handler bindings
-        this.onMouseMove = this.onMouseMove.bind(this);
-        this.onMouseDown = this.onMouseDown.bind(this);
-
         this.addListeners();
     }
 
@@ -86,11 +82,11 @@ export default class BlasterGame extends GameBase {
         // Load and create the blaster
         this.blaster = await this.createBlaster();
         if (this.blaster && this.camera) {
-            this.blaster.position.set(0, 0, 0); // Blaster Position
+            this.blaster.position.set(0, 0, 0);
             this.scene.add(this.blaster);
-            // Attach the camera to the blaster
+
             this.blaster.add(this.camera);
-            this.camera.position.set(0, 0.4, 1); // Camera Position
+            this.camera.position.set(0, 0.4, 1);
         }
 
         // Load bullet
@@ -105,14 +101,13 @@ export default class BlasterGame extends GameBase {
 
     private async createTarget(): Promise<THREE.Object3D | null> {
         const targetModel = AssetManager.getModel('Target');
+        
         if (!targetModel) {
             console.error("Failed to load target model");
             return null;
         }
 
         const targetClone = targetModel.clone(true);
-
-        // Modify the target model
         targetClone.rotateY(Math.PI * 0.5);
         targetClone.scale.set(2, 2, 2);
 
@@ -121,7 +116,6 @@ export default class BlasterGame extends GameBase {
 
     // Create a blaster object
     private async createBlaster(): Promise<THREE.Object3D | null> {
-        // Load blaster material
         const blasterModel = await AssetManager.loadOBJ('Blaster', './assets/Blaster/Blaster.obj', './assets/Blaster/Blaster.mtl');
     
         if (!blasterModel) {
@@ -177,12 +171,11 @@ export default class BlasterGame extends GameBase {
 
     // Check if bullet and target collides
     private checkCollisions(bullet: THREE.Object3D): boolean {
-        // Bullet bounding box
         const bulletBox = new THREE.Box3().setFromObject(bullet);
-        // Check each target for collision with the bullet
+
         for (let target of this.targets) {
             const targetBox = new THREE.Box3().setFromObject(target);
-            // If collision is detected
+            
             if (bulletBox.intersectsBox(targetBox)) {
                 this.handleTargetHit(target, bullet);
                 return true;
@@ -200,7 +193,7 @@ export default class BlasterGame extends GameBase {
         this.scene?.remove(bullet);
         this.bullets = this.bullets.filter(b => b !== bullet);
         
-        // Notify score change
+        // Score change
         GameState.score += 100;
         this.updateHUD();
         
@@ -220,7 +213,6 @@ export default class BlasterGame extends GameBase {
     // Handle mouse movement
     private onMouseMove = (event: MouseEvent) => {
         if (this.blaster) {
-            // console.log('Moving blaster', event.clientX, event.clientY);
             // Normalize mouse coordinates
             const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
             const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -241,14 +233,14 @@ export default class BlasterGame extends GameBase {
 
     override addListeners() {
         super.addListeners();
-        // Add mouse event listeners
+
         window.addEventListener('mousemove', this.onMouseMove, false);
         window.addEventListener('mousedown', this.onMouseDown, false);
     }
 
     private removeListeners() {
-        this.onMouseMove && window.removeEventListener('mousemove', this.onMouseMove, false);
-        this.onMouseDown && window.removeEventListener('mousedown', this.onMouseDown, false);
+        window.removeEventListener('mousemove', this.onMouseMove, false);
+        window.removeEventListener('mousedown', this.onMouseDown, false);
     }
 
     private startCountdown(onComplete: () => void) {
@@ -390,7 +382,7 @@ export default class BlasterGame extends GameBase {
     }
 
     override async cleanup() {
-        if (!this.blaster || !this.camera || !this.scene) return;
+        if (!this.scene) return;
 
         // Remove all targets
         this.targets.forEach(target => this.scene?.remove(target));
@@ -400,10 +392,11 @@ export default class BlasterGame extends GameBase {
         // Remove all bullets
         this.bullets.forEach(bullet => this.scene?.remove(bullet));
         this.bullets = [];
+        this.bulletVelocities.clear();
 
         // Remove blaster and detach camera
         if (this.blaster) {
-            if (this.camera.parent === this.blaster) {
+            if (this.camera && this.camera.parent === this.blaster) {
                 this.blaster.remove(this.camera);
             }
             this.scene.remove(this.blaster);
