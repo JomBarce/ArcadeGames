@@ -44,7 +44,6 @@ export default class BasketballGame extends GameBase {
     private readonly RIM_FRICTION = 0.1;
     private readonly BALL_COLLIDER_SCALE = .5;
 
-
     constructor(
         canvas: HTMLCanvasElement,
         hud: HTMLDivElement,
@@ -62,10 +61,6 @@ export default class BasketballGame extends GameBase {
         this.hud = hud;
         this.gameOverScreen = gameOverScreen;
         this.countdownTimer = countdownTimer;
-
-        // Event handler bindings
-        this.onMouseUp = this.onMouseUp.bind(this);
-        this.onMouseDown = this.onMouseDown.bind(this);
 
         this.addListeners();
     }
@@ -307,8 +302,8 @@ export default class BasketballGame extends GameBase {
     }
 
     private removeListeners() {
-        this.onMouseUp && window.removeEventListener('mouseup', this.onMouseUp, false);
-        this.onMouseDown && window.removeEventListener('mousedown', this.onMouseDown, false);
+        window.removeEventListener('mouseup', this.onMouseUp, false);
+        window.removeEventListener('mousedown', this.onMouseDown, false);
     }
 
     private startCountdown(onComplete: () => void) {
@@ -437,7 +432,18 @@ export default class BasketballGame extends GameBase {
     }
 
     override async cleanup() {
-        if (!this.camera || !this.scene) return;
+        if (!this.scene) return;
+
+        // Remove basketball model
+        if (this.basketball) {
+            this.scene.remove(this.basketball);
+            this.basketball = null;
+        }
+
+        this.currentBall = null;
+        this.ballVelocity.set(0, 0, 0);
+        this.hoop = null;
+        this.hoopScoringBox = null;
 
         this.removeListeners();
 
