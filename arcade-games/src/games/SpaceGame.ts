@@ -20,6 +20,9 @@ export default class SpaceGame extends GameBase {
     private countdownInterval: ReturnType<typeof setInterval> | null = null;
     private isUnpausing: boolean = false;
 
+    private keys: { [key: string]: boolean } = { up: false, down: false, left: false, right: false, throttle: false };
+
+    private readonly TURN_SPEED = 1;
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -45,7 +48,7 @@ export default class SpaceGame extends GameBase {
     async initialize() {
         if (!this.scene) throw new Error('Scene is not initialized');
 
-        this.camera?.position.set(100, 100, 750);
+        this.camera?.position.set(50, 50, 75);
         this.camera?.lookAt(0, 0, 0);
 
         // Load and create the spaceship
@@ -72,16 +75,64 @@ export default class SpaceGame extends GameBase {
             return null;
         }
 
+        spaceshipModel.scale.set(0.05, 0.05, 0.05);
+
         return spaceshipModel;
     }
 
+    // Handle keyboard click
+    private onKeyDown = (event: KeyboardEvent) => {
+        switch (event.code) {
+            case 'KeyW': 
+            case 'ArrowUp':    
+                this.keys.up = true;
+                break;
+            case 'KeyS': 
+            case 'ArrowDown':
+                this.keys.down = true;
+                break;
+            case 'KeyA': 
+            case 'ArrowLeft':  
+                this.keys.left = true;
+                break;
+            case 'KeyD': 
+            case 'ArrowRight': 
+                this.keys.right = true;
+                break;
+        }
+    };
+
+    private onKeyUp = (event: KeyboardEvent) => {
+        switch (event.code) {
+            case 'KeyW': 
+            case 'ArrowUp':    
+                this.keys.up = false;
+                break;
+            case 'KeyS': 
+            case 'ArrowDown':
+                this.keys.down = false;
+                break;
+            case 'KeyA': 
+            case 'ArrowLeft':  
+                this.keys.left = false;
+                break;
+            case 'KeyD': 
+            case 'ArrowRight': 
+                this.keys.right = false;
+                break;
+        }
+    };
 
     override addListeners() {
         super.addListeners();
+
+        window.addEventListener('keydown', this.onKeyDown);
+        window.addEventListener('keyup', this.onKeyUp);
     }
 
     private removeListeners() {
-
+        window.addEventListener('keydown', this.onKeyDown);
+        window.addEventListener('keyup', this.onKeyUp);
     }
 
     private startCountdown(onComplete: () => void) {
@@ -115,10 +166,12 @@ export default class SpaceGame extends GameBase {
     }
 
     override start() {
-        this.startCountdown(() => {
-            super.start();
-            this.lastUpdateTime = this.clock.getElapsedTime();
-        });
+        // this.startCountdown(() => {
+        //     super.start();
+        //     this.lastUpdateTime = this.clock.getElapsedTime();
+        // });
+        super.start();
+        this.lastUpdateTime = this.clock.getElapsedTime();
     }
 
     override reset() {
@@ -191,10 +244,10 @@ export default class SpaceGame extends GameBase {
             this.spaceship.rotation.y += 0.01;
         }
 
-        if (GameState.time <= 0) {
-            this.endGame();
-            return;
-        }
+        // if (GameState.time <= 0) {
+        //     this.endGame();
+        //     return;
+        // }
 
         if (!this.isUnpausing) {
             this.updateHUD();
