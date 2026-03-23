@@ -80,6 +80,13 @@ export default class SpaceGame extends GameBase {
         return spaceshipModel;
     }
 
+    private updateSpaceshipMovement(delta: number) {
+        if (!this.spaceship) return;
+
+        if (this.keys.up) this.spaceship.rotateX(this.TURN_SPEED * delta);
+        if (this.keys.down) this.spaceship.rotateX(-this.TURN_SPEED * delta);
+    }
+
     // Handle keyboard click
     private onKeyDown = (event: KeyboardEvent) => {
         switch (event.code) {
@@ -242,6 +249,7 @@ export default class SpaceGame extends GameBase {
 
         if (this.spaceship) {
             this.spaceship.rotation.y += 0.01;
+            this.updateSpaceshipMovement(delta);
         }
 
         // if (GameState.time <= 0) {
