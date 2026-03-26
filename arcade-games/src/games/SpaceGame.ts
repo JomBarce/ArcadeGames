@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import GameBase from './shared/GameBase';
 import GameState from './shared/GameState';
 import AssetManager from './shared/AssetManager';
+import { clamp } from '../utils/math';
 
 export default class SpaceGame extends GameBase {
     private spaceship: THREE.Object3D | null = null;
@@ -21,7 +22,11 @@ export default class SpaceGame extends GameBase {
     private isUnpausing: boolean = false;
 
     private keys: { [key: string]: boolean } = { up: false, down: false, left: false, right: false, throttle: false };
+    private velocity = 0;
 
+    private readonly MAX_SPEED = 100;
+    private readonly ACCELERATION = 20;
+    private readonly FRICTION = 10; 
     private readonly TURN_SPEED = 1;
 
     constructor(
@@ -83,8 +88,35 @@ export default class SpaceGame extends GameBase {
     private updateSpaceshipMovement(delta: number) {
         if (!this.spaceship) return;
 
+        // Throttle
+        if (this.keys.throttle) {
+            this.velocity += this.ACCELERATION * delta;
+        } else {
+            if (this.velocity > 0) {
+                this.velocity -= this.FRICTION * delta;
+                if (this.velocity < 0) this.velocity = 0;
+            } else if (this.velocity < 0) {
+                this.velocity += this.FRICTION * delta;
+                if (this.velocity > 0) this.velocity = 0;
+            }
+        }
+        this.velocity = clamp(this.velocity, -this.MAX_SPEED * 0.5, this.MAX_SPEED);
+
+        // Yaw
+        if (this.keys.left) this.spaceship.rotateY(this.TURN_SPEED * delta);
+        if (this.keys.right) this.spaceship.rotateY(-this.TURN_SPEED * delta);
+
+        // Pitch
         if (this.keys.up) this.spaceship.rotateX(this.TURN_SPEED * delta);
         if (this.keys.down) this.spaceship.rotateX(-this.TURN_SPEED * delta);
+
+        // Move Forward
+        const forward = new THREE.Vector3(0, 0, 1);
+        forward.applyQuaternion(this.spaceship.quaternion);
+        forward.normalize();
+
+        // Apply velocity
+        this.spaceship.position.addScaledVector(forward, this.velocity * delta);
     }
 
     // Handle keyboard click
@@ -106,6 +138,9 @@ export default class SpaceGame extends GameBase {
             case 'ArrowRight': 
                 this.keys.right = true;
                 break;
+            case 'Space':
+                this.keys.throttle = true;
+                break;
         }
     };
 
@@ -126,6 +161,9 @@ export default class SpaceGame extends GameBase {
             case 'KeyD': 
             case 'ArrowRight': 
                 this.keys.right = false;
+                break;
+            case 'Space':
+                this.keys.throttle = false;
                 break;
         }
     };
@@ -248,8 +286,8 @@ export default class SpaceGame extends GameBase {
         GameState.time = Math.max(0, GameState.time - delta);
 
         if (this.spaceship) {
-            this.spaceship.rotation.y += 0.01;
-            this.updateSpaceshipMovement(delta);
+            // this.spaceship.rotation.y += 0.01;
+            this.updateSpaceshipMovement(delta*2);
         }
 
         // if (GameState.time <= 0) {
