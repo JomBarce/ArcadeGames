@@ -107,8 +107,10 @@ export default class SpaceGame extends GameBase {
         if (this.keys.right) this.spaceship.rotateY(-this.TURN_SPEED * delta);
 
         // Pitch
-        if (this.keys.up) this.spaceship.rotateX(this.TURN_SPEED * delta);
-        if (this.keys.down) this.spaceship.rotateX(-this.TURN_SPEED * delta);
+        if (Math.abs(this.velocity) > 0.1) {
+            if (this.keys.up) this.spaceship.rotateX(this.TURN_SPEED * delta);
+            if (this.keys.down) this.spaceship.rotateX(-this.TURN_SPEED * delta);
+        }
 
         // Move Forward
         const forward = new THREE.Vector3(0, 0, 1);
@@ -170,7 +172,7 @@ export default class SpaceGame extends GameBase {
 
     override addListeners() {
         super.addListeners();
-
+        
         window.addEventListener('keydown', this.onKeyDown);
         window.addEventListener('keyup', this.onKeyUp);
     }
