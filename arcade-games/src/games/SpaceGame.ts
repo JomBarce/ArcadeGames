@@ -23,6 +23,11 @@ export default class SpaceGame extends GameBase {
 
     private keys: { [key: string]: boolean } = { up: false, down: false, left: false, right: false, throttle: false };
     private velocity = 0;
+    private cameraOffset = new THREE.Vector3();
+    private cameraOffsetY = 50;
+    private cameraOffsetZ = -100;
+    private cameratargetPos = new THREE.Vector3();
+    private currentLookAt = new THREE.Vector3();
 
     private readonly MAX_SPEED = 100;
     private readonly ACCELERATION = 20;
@@ -53,9 +58,6 @@ export default class SpaceGame extends GameBase {
     async initialize() {
         if (!this.scene) throw new Error('Scene is not initialized');
 
-        this.camera?.position.set(50, 50, 75);
-        this.camera?.lookAt(0, 0, 0);
-
         // Load and create the spaceship
         this.spaceship = await this.createSpaceship();
         if (this.spaceship && this.camera) {
@@ -83,6 +85,27 @@ export default class SpaceGame extends GameBase {
         spaceshipModel.scale.set(0.05, 0.05, 0.05);
 
         return spaceshipModel;
+    }
+
+    private updateCamera() {
+        if (!this.camera || !this.spaceship) return;
+
+        this.cameraOffset.set(0, this.cameraOffsetY, this.cameraOffsetZ);
+        this.cameraOffset.applyQuaternion(this.spaceship.quaternion);
+
+        this.cameratargetPos.copy(this.spaceship.position).add(this.cameraOffset);
+        this.camera.position.lerp(this.cameratargetPos, 0.2);
+
+        const lookTarget = this.spaceship.position.clone();
+        lookTarget.y += 2.5;
+
+        this.currentLookAt.lerp(lookTarget, 0.2);
+
+        const pitchDirection = new THREE.Vector3(0, 1, 0);
+        pitchDirection.applyQuaternion(this.spaceship.quaternion);
+        this.camera.up.copy(pitchDirection);
+
+        this.camera.lookAt(this.currentLookAt);
     }
 
     private updateSpaceshipMovement(delta: number) {
@@ -172,7 +195,7 @@ export default class SpaceGame extends GameBase {
 
     override addListeners() {
         super.addListeners();
-        
+
         window.addEventListener('keydown', this.onKeyDown);
         window.addEventListener('keyup', this.onKeyUp);
     }
@@ -290,6 +313,7 @@ export default class SpaceGame extends GameBase {
         if (this.spaceship) {
             // this.spaceship.rotation.y += 0.01;
             this.updateSpaceshipMovement(delta*2);
+            this.updateCamera();
         }
 
         // if (GameState.time <= 0) {
