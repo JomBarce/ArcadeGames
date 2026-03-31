@@ -57,6 +57,10 @@ export default class SpaceGame extends GameBase {
 
     async initialize() {
         if (!this.scene) throw new Error('Scene is not initialized');
+        if (this.camera) {
+            this.camera.far = 4000; 
+            this.camera.updateProjectionMatrix();
+        }
 
         // Load and create the spaceship
         this.spaceship = await this.createSpaceship();
