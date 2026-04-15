@@ -29,7 +29,7 @@ export default class SpaceGame extends GameBase {
     private cameratargetPos = new THREE.Vector3();
     private currentLookAt = new THREE.Vector3();
 
-    private readonly MAX_SPEED = 100;
+    private readonly MAX_SPEED = 250;
     private readonly ACCELERATION = 20;
     private readonly FRICTION = 10; 
     private readonly TURN_SPEED = 1;
@@ -62,6 +62,8 @@ export default class SpaceGame extends GameBase {
             this.camera.updateProjectionMatrix();
         }
 
+        this.generateMapGrid();
+
         // Load and create the spaceship
         this.spaceship = await this.createSpaceship();
         if (this.spaceship && this.camera) {
@@ -89,6 +91,21 @@ export default class SpaceGame extends GameBase {
         spaceshipModel.scale.set(0.05, 0.05, 0.05);
 
         return spaceshipModel;
+    }
+
+    private generateMapGrid() {
+        const radius = 2000;
+        const geometry = new THREE.SphereGeometry(radius, 32, 32);
+        
+        const material = new THREE.MeshBasicMaterial({
+            color: 0x505050,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.1
+        });
+
+        const areaSphere = new THREE.Mesh(geometry, material);
+        this.scene?.add(areaSphere);
     }
 
     private updateCamera() {
