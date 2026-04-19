@@ -21,7 +21,7 @@ export default class SpaceGame extends GameBase {
     private countdownInterval: ReturnType<typeof setInterval> | null = null;
     private isUnpausing: boolean = false;
 
-    private keys: { [key: string]: boolean } = { up: false, down: false, left: false, right: false, throttle: false };
+    private keys: { [key: string]: boolean } = { up: false, down: false, left: false, right: false, rollLeft: false, rollRight: false, throttle: false };
     private velocity = 0;
     private cameraOffset = new THREE.Vector3();
     private cameraOffsetY = 50;
@@ -150,8 +150,12 @@ export default class SpaceGame extends GameBase {
         if (this.keys.left) this.spaceship.rotateY(this.TURN_SPEED * delta);
         if (this.keys.right) this.spaceship.rotateY(-this.TURN_SPEED * delta);
 
-        // Pitch
         if (Math.abs(this.velocity) > 0.1) {
+            // Roll
+            if (this.keys.rollLeft) this.spaceship.rotateZ(-this.TURN_SPEED * delta);
+            if (this.keys.rollRight) this.spaceship.rotateZ(this.TURN_SPEED * delta);
+
+            // Pitch
             if (this.keys.up) this.spaceship.rotateX(this.TURN_SPEED * delta);
             if (this.keys.down) this.spaceship.rotateX(-this.TURN_SPEED * delta);
         }
@@ -184,6 +188,12 @@ export default class SpaceGame extends GameBase {
             case 'ArrowRight': 
                 this.keys.right = true;
                 break;
+            case 'KeyQ':   
+                this.keys.rollLeft = true;
+                break;
+            case 'KeyE': 
+                this.keys.rollRight = true;
+                break;
             case 'Space':
                 this.keys.throttle = true;
                 break;
@@ -207,6 +217,12 @@ export default class SpaceGame extends GameBase {
             case 'KeyD': 
             case 'ArrowRight': 
                 this.keys.right = false;
+                break;
+            case 'KeyQ':   
+                this.keys.rollLeft = false;
+                break;
+            case 'KeyE': 
+                this.keys.rollRight = false;
                 break;
             case 'Space':
                 this.keys.throttle = false;
