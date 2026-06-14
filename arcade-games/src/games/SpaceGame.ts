@@ -7,6 +7,8 @@ import { clamp } from '../utils/math';
 
 export default class SpaceGame extends GameBase {
     private spaceship: THREE.Object3D | null = null;
+    private lasers: THREE.Object3D[] = [];
+    private laserVelocities: Map<THREE.Object3D, THREE.Vector3> = new Map();
     
     private hud: HTMLDivElement;
     private scoreText: HTMLDivElement;
@@ -33,6 +35,9 @@ export default class SpaceGame extends GameBase {
     private readonly ACCELERATION = 20;
     private readonly FRICTION = 10; 
     private readonly TURN_SPEED = 1;
+
+    private readonly LASER_SPEED = 12;
+    private readonly LASER_LIFETIME = 2500;
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -92,6 +97,39 @@ export default class SpaceGame extends GameBase {
 
         return spaceshipModel;
     }
+
+    private createLaser = () => {
+        if (!this.spaceship || !this.scene) return;
+
+        // Create a simple laser beam geometry
+        const laserLength = 20;
+        const laserRadius = 0.5;
+        const laserGeometry = new THREE.CylinderGeometry(laserRadius, laserRadius, laserLength);
+        const laserMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const laser = new THREE.Mesh(laserGeometry, laserMaterial);
+
+        // Rotate cylinder so it's pointing forward along Z
+        laser.rotateX(Math.PI / 2); // cylinder default is along Y axis
+
+        // Spawn position at the front of the spaceship
+        const forward = new THREE.Vector3(0, 0, 1);        
+        forward.applyQuaternion(this.spaceship.quaternion);
+        forward.normalize();
+
+        const spawnPosition = this.spaceship.position.clone().add(forward.clone().multiplyScalar(5)); // adjust distance from ship
+        laser.position.copy(spawnPosition);
+
+        // Rotate laser to match spaceship orientation
+        laser.quaternion.multiplyQuaternions(this.spaceship.quaternion, laser.quaternion);
+
+        // Add to scene and track it
+        this.scene.add(laser);
+        this.lasers.push(laser);
+
+        // Set velocity along ship's forward direction
+        const velocity = forward.multiplyScalar(this.LASER_SPEED);
+        this.laserVelocities.set(laser, velocity);
+    };
 
     private generateMapGrid() {
         const radius = 2000;
@@ -196,6 +234,9 @@ export default class SpaceGame extends GameBase {
                 break;
             case 'Space':
                 this.keys.throttle = true;
+                break;
+            case 'KeyJ':
+                this.createLaser();
                 break;
         }
     };
@@ -352,6 +393,20 @@ export default class SpaceGame extends GameBase {
             this.updateSpaceshipMovement(delta*2);
             this.updateCamera();
         }
+
+        // Update lasers
+        this.lasers.forEach((laser) => {
+            const velocity = this.laserVelocities.get(laser);
+            if (!velocity) return;
+            
+            laser.position.add(velocity);
+
+            if (laser.position.length() > this.LASER_LIFETIME) {
+                this.scene?.remove(laser);
+                this.lasers = this.lasers.filter(b => b !== laser);
+                this.laserVelocities.delete(laser);
+            }
+        });
 
         // if (GameState.time <= 0) {
         //     this.endGame();
